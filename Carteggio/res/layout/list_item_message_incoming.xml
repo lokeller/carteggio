@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/aa1"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dip"
+        android:layout_marginLeft="8dip"
+        android:layout_marginRight="24dip"
+        android:layout_marginTop="8dip"
+        android:background="#eaeaea"
+        android:orientation="vertical" >
+
+        <TextView
+            android:id="@+id/message_sender"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dip"
+            android:layout_marginLeft="8dip"
+            android:layout_marginRight="8dip"
+            android:layout_marginTop="4dip"
+            android:text="Pinco Pallino"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="#00ff00"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dip"
+            android:layout_marginLeft="8dip"
+            android:layout_marginRight="8dip"
+            android:layout_marginTop="4dip"
+            android:text="Hello, this is a message"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/message_details"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:layout_margin="4dip"
+            android:text="11:34 PM ✓"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textColor="#999999" />
+
+    </LinearLayout>
+
+</LinearLayout>
