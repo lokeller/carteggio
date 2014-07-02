@@ -24,27 +24,18 @@ public class ImapPreferences {
 	}
 
 	public boolean isPushPollOnConnect() {
-		// TODO Auto-generated method stub
 		return true;
 	}
 
-	public long getDisplayCount() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
 	public int getIdleRefreshMinutes() {
-		// TODO Auto-generated method stub
-		return 0;
+		return 10;
 	}
 
 	public boolean allowRemoteSearch() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
 	public boolean isRemoteSearchFullText() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 

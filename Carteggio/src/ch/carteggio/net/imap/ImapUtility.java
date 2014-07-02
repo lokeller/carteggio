@@ -20,11 +20,20 @@
 
 package ch.carteggio.net.imap;
 
-import android.util.Log;
-
-
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.util.ArrayList;
 import java.util.List;
+
+import android.text.TextUtils;
+import android.util.Log;
+
+import com.beetstra.jutf7.CharsetProvider;
 
 /**
  * Utility methods for use with IMAP.
@@ -33,6 +42,13 @@ public class ImapUtility {
 	
     private static final String LOG_TAG = "ImapUtility";
 
+    
+    /**
+     * Charset used for converting folder names to and from UTF-7 as defined by RFC 3501.
+     */
+    private static final Charset mModifiedUtf7Charset = new CharsetProvider().charsetForName("X-RFC-3501");
+    
+    
 	/**
      * Gets all of the values in a sequence set per RFC 3501.
      *
@@ -135,4 +151,73 @@ public class ImapUtility {
     private static boolean is32bitValue(long value) {
         return ((value & ~0xFFFFFFFFL) == 0L);
     }
+    
+    public static String encodeFolderName(String name) {
+        try {
+            ByteBuffer bb = mModifiedUtf7Charset.encode(name);
+            byte[] b = new byte[bb.limit()];
+            bb.get(b);
+            return new String(b, "US-ASCII");
+        } catch (UnsupportedEncodingException uee) {
+            /*
+             * The only thing that can throw this is getBytes("US-ASCII") and if US-ASCII doesn't
+             * exist we're totally screwed.
+             */
+            throw new RuntimeException("Unable to encode folder name: " + name, uee);
+        }
+    }
+
+    public static String decodeFolderName(String name) throws CharacterCodingException {
+        /*
+         * Convert the encoded name to US-ASCII, then pass it through the modified UTF-7
+         * decoder and return the Unicode String.
+         */
+        try {
+            // Make sure the decoder throws an exception if it encounters an invalid encoding.
+            CharsetDecoder decoder = mModifiedUtf7Charset.newDecoder().onMalformedInput(CodingErrorAction.REPORT);
+            CharBuffer cb = decoder.decode(ByteBuffer.wrap(name.getBytes("US-ASCII")));
+            return cb.toString();
+        } catch (UnsupportedEncodingException uee) {
+            /*
+             * The only thing that can throw this is getBytes("US-ASCII") and if US-ASCII doesn't
+             * exist we're totally screwed.
+             */
+            throw new RuntimeException("Unable to decode folder name: " + name, uee);
+        }
+    }
+
+	/**
+	 * Encode a string to be able to use it in an IMAP command.
+	 *
+	 * "A quoted string is a sequence of zero or more 7-bit characters,
+	 *  excluding CR and LF, with double quote (<">) characters at each
+	 *  end." - Section 4.3, RFC 3501
+	 *
+	 * Double quotes and backslash are escaped by prepending a backslash.
+	 *
+	 * @param str
+	 *     The input string (only 7-bit characters allowed).
+	 * @return
+	 *     The string encoded as quoted (IMAP) string.
+	 */
+	public static String encodeString(String str) {
+	    return "\"" + str.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+	}
+
+	/**
+	 * Combines the given array of Objects into a single String using
+	 * each Object's toString() method and the separator character
+	 * between each part.
+	 *
+	 * @param parts
+	 * @param separator
+	 * @return new String
+	 */
+	public static String combine(Object[] parts, char separator) {
+	    if (parts == null) {
+	        return null;
+	    }
+	    return TextUtils.join(String.valueOf(separator), parts);
+	}
+
 }

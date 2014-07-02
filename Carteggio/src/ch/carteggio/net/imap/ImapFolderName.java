@@ -10,25 +10,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  * 
- * This file is a modified version of a file distributed with K-9 sources
- * that didn't include any copyright attribution header. 
  *    
  */
 
 package ch.carteggio.net.imap;
 
-import java.util.List;
+import ch.carteggio.net.MessagingException;
 
+public class ImapFolderName {
+	
+	private final String mName;
 
-public interface Pusher {
-    public void start(List<String> folderNames);
-    public void refresh();
-    public void stop();
-    /**
-     *
-     * @return milliseconds of required refresh interval
-     */
-    public int getRefreshInterval();
-    public void setLastRefresh(long lastRefresh);
-    public long getLastRefresh();
+	private ImapStore mStore;
+
+	public ImapFolderName(String mName, ImapStore mStore) {
+		this.mName = mName;
+		this.mStore = mStore;
+	}
+	
+	public String getName() {
+		return mName;
+	}
+	
+	public String getPrefixedName() throws MessagingException {
+		return mStore.getCombinedPrefix() + mName;		
+	}	
+	
 }

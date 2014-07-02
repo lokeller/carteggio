@@ -20,16 +20,27 @@ package ch.carteggio.net.imap;
 import java.util.ArrayList;
 
 /**
- * <pre>
+ * 
  * A FetchProfile is a list of items that should be downloaded in bulk for a set of messages.
+ * 
  * FetchProfile can contain the following objects:
- *      FetchProfile.Item:      Described below.
- *      Message:                Indicates that the body of the entire message should be fetched.
- *                              Synonymous with FetchProfile.Item.BODY.
- *      Part:                   Indicates that the given Part should be fetched. The provider
- *                              is expected have previously created the given BodyPart and stored
- *                              any information it needs to download the content.
- * </pre>
+ * 
+ * <dl>
+ * 
+ * <dt>FetchProfile.Item</dt>
+ * <dd>Described below</dd>
+ * 
+ * <dt>Message</dt>
+ * <dd>Indicates that the body of the entire message should be fetched. Synonymous with 
+ * FetchProfile.Item.BODY.</dd>
+ * 
+ * <dt>Part</dt>
+ * <dd>Indicates that the given Part should be fetched. The provider is expected have 
+ * previously created the given BodyPart and stored any information it needs to download
+ * the content.</dd>
+ * 
+ * </dl>
+ * 
  */
 public class FetchProfile extends ArrayList<FetchProfile.Item> {
     private static final long serialVersionUID = -5520076119120964166L;

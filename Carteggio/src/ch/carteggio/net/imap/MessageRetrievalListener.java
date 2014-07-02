@@ -16,11 +16,11 @@
  */
 package ch.carteggio.net.imap;
 
-import ch.carteggio.net.imap.ImapStore.ImapMessage;
 
 
 public interface MessageRetrievalListener {
-    public void messageStarted(String uid, int number, int ofTotal);
+	
+    public void messageStarted(long uid, int number, int ofTotal);
 
     public void messageFinished(ImapMessage message, int number, int ofTotal);
 

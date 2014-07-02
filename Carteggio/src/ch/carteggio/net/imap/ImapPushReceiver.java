@@ -11,14 +11,15 @@
  * limitations under the License.
  * 
  * This file is a modified version of a file distributed with K-9 sources
- * that didn't include any copyright attribution header. 
+ * that didn't include any copyright attribution header.    
  *    
  */
+
 package ch.carteggio.net.imap;
 
-import ch.carteggio.net.imap.ImapStore.ImapMessage;
-
-
-public interface MessageRemovalListener {
-    public void messageRemoved(ImapMessage message);
+public interface ImapPushReceiver {
+    public void onFolderChanged(String folder);
+    public void onListeningError(String folder, String errorMessage, Exception e);
+    public void onPushNotSupported(String folderName);
+	public void onListeningStarted(String folderName);
 }

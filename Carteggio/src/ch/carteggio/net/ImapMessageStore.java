@@ -14,7 +14,6 @@ package ch.carteggio.net;
 
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.apache.james.mime4j.dom.Entity;
@@ -24,14 +23,13 @@ import android.content.Context;
 import android.os.PowerManager.WakeLock;
 import android.util.Log;
 import ch.carteggio.net.imap.FetchProfile;
-import ch.carteggio.net.imap.ImapPreferences;
-import ch.carteggio.net.imap.ImapStore;
-import ch.carteggio.net.imap.PushReceiver;
-import ch.carteggio.net.imap.Pusher;
 import ch.carteggio.net.imap.FetchProfile.Item;
-import ch.carteggio.net.imap.ImapStore.ImapFolder;
-import ch.carteggio.net.imap.ImapStore.ImapMessage;
-import ch.carteggio.net.imap.ImapStore.ImapPusher;
+import ch.carteggio.net.imap.ImapMessage;
+import ch.carteggio.net.imap.ImapPreferences;
+import ch.carteggio.net.imap.ImapPushReceiver;
+import ch.carteggio.net.imap.ImapSession;
+import ch.carteggio.net.imap.ImapStore;
+import ch.carteggio.net.imap.ImapStoreMonitor;
 import ch.carteggio.provider.CarteggioAccount;
 
 public class ImapMessageStore implements MessageStore {
@@ -40,25 +38,23 @@ public class ImapMessageStore implements MessageStore {
 	
 	private static final String LOG_TAG = "ImapMessageStore";
 	
-	private CarteggioAccount mAccount;
 	private Context mContext;
 	
-	private ArrayList<ImapPusher> mPushers = new ArrayList<ImapPusher>();
+	private ArrayList<ImapStoreMonitor> mPushers = new ArrayList<ImapStoreMonitor>();
 		
-	private ImapMessageStore(Context context, ImapStore store, CarteggioAccount account) {
+	private ImapMessageStore(Context context, ImapStore store) {
 		this.mStore = store;
 		this.mContext = context;
-		this.mAccount = account;
 	}
 
 	@Override
-	public void addMessageListener(MessageStore.Folder folder, MessageListener listener) {
+	public void addMessageListener(MessageStore.Folder folder, FolderListener listener) {
 			
-		ImapPusher pusher = mStore.getPusher(new PushReceiverImpl(mContext, listener, (Folder) folder));
+		ImapStoreMonitor pusher = mStore.createMonitor(new PushReceiverImpl(listener, (Folder) folder));
 		
 		List<String> folders = new ArrayList<String>();
 		
-		folders.add(((Folder) folder).mFolder.getName());
+		folders.add(((Folder) folder).mFolder.getFolderName().getName());
 		
 		pusher.start(folders);
 		
@@ -70,7 +66,7 @@ public class ImapMessageStore implements MessageStore {
 	@Override
 	public void removeMessageListeners() {
 
-		for ( Pusher p : mPushers) {
+		for ( ImapStoreMonitor p : mPushers) {
 			p.stop();
 		}
 		
@@ -81,7 +77,7 @@ public class ImapMessageStore implements MessageStore {
 	@Override
 	public Folder getInbox() {
 	
-		ImapFolder imapFolder = mStore.getFolder("INBOX");
+		ImapSession imapFolder = mStore.getSession("INBOX");
 				
 		return new Folder(imapFolder);
 				
@@ -90,17 +86,50 @@ public class ImapMessageStore implements MessageStore {
 	@Override
 	public Folder getPrivateFolder() {
 		
-		ImapFolder carteggioFolder = mStore.getFolder("Carteggio");
+		ImapSession carteggioFolder = mStore.getSession("Carteggio");
 		
 		return new Folder(carteggioFolder);		
 		
 	}
 	
+	
+	
+	@Override
+	public SynchronizationPoint parseSynchronizationPoint(String syncPoint) {
+		
+		if (syncPoint == null) return new ImapSynchronizationPoint(-1);
+		
+		try {
+			return new ImapSynchronizationPoint(Long.parseLong(syncPoint));
+		} catch (Exception ex) {
+			return new ImapSynchronizationPoint(-1);
+		}
+	}
+
+	private class ImapSynchronizationPoint implements SynchronizationPoint {
+
+		long nextMinimumMessageUid;
+		
+		public ImapSynchronizationPoint(long nextMinimumMessageUid) {
+			this.nextMinimumMessageUid = nextMinimumMessageUid;
+		}
+
+		public void update(long messageId) {
+			nextMinimumMessageUid = Math.max(messageId + 1, nextMinimumMessageUid);
+		}
+
+		@Override
+		public String save() {
+			return Long.toString(nextMinimumMessageUid);
+		}
+		
+	}
+	
 	private class Folder implements MessageStore.Folder {
 
-		private ImapFolder mFolder;
+		private ImapSession mFolder;
 		
-		public Folder(ImapFolder folder) {
+		public Folder(ImapSession folder) {
 			this.mFolder = folder;
 		}
 		
@@ -112,32 +141,37 @@ public class ImapMessageStore implements MessageStore {
 		@Override
 		public void open() throws MessagingException {
 			try {
-				mFolder.open(ImapFolder.OPEN_MODE_RW);
+				mFolder.open(ImapSession.OPEN_MODE_RW);
 			} catch (MessagingException e) {
 				throw new MessagingException("Unable to open folder", e);
 			}
 		}
 
 		@Override
-		public Message[] getMessagesAfter(Date date) throws MessagingException {
+		public Message[] getMessagesAfter(SynchronizationPoint point) throws MessagingException {
 			
-			int count = mFolder.getMessageCount();
-					
+			ImapSynchronizationPoint imapSyncPoint = (ImapSynchronizationPoint) point;
+			
 			try {
+				
+				// if this is the first time we start carteggio we don't want to load all
+				// messages (the mailbox could be huge). Instead we check what is the highest
+				// uid and next time we will be able to look for new messages
+				if  (imapSyncPoint.nextMinimumMessageUid == -1) {
+					
+					imapSyncPoint.update(mFolder.getHighestUid());
+					
+					return new Message[0];
+				} else {
 								
-				ImapMessage[] imapMessages = mFolder.getMessages(1, count, date, null);
-				
-				// set the push state so that we don't re-download the messages we just downloaded
-				for ( ImapMessage message : imapMessages ) {
-							
-					String pushState = mFolder.getNewPushState(mAccount.getPushState(), message);
-							
-					if ( pushState != null ) {
-						mAccount.setPushState(pushState);
+					ImapMessage[] imapMessages = mFolder.getMessagesAddedAfter(imapSyncPoint.nextMinimumMessageUid, null);
+					
+					for ( ImapMessage message : imapMessages ) {
+						imapSyncPoint.update(message.getUid());					
 					}
+					
+					return imapMessages;
 				}
-				
-				return imapMessages;
 				
 			} catch (MessagingException e) {
 				throw new MessagingException("Unable to retrieve list of new messages", e);
@@ -165,7 +199,7 @@ public class ImapMessageStore implements MessageStore {
 		}
 
 		private ImapMessage[] toImapMessages(Message[] messages) {
-			ArrayList<ImapMessage> imapMessages = new ArrayList<ImapStore.ImapMessage>();
+			ArrayList<ImapMessage> imapMessages = new ArrayList<ImapMessage>();
 			
 			for ( Message m : messages) {
 				imapMessages.add((ImapMessage) m);
@@ -241,7 +275,7 @@ public class ImapMessageStore implements MessageStore {
 			
 				ImapStore store = new ImapStore(mContext, account.getIncomingServer(), new ImapPreferences(), account.getIncomingPassword());
 	
-				return new ImapMessageStore(mContext, store, account);
+				return new ImapMessageStore(mContext, store);
 				
 			} catch ( MessagingException ex) {
 				
@@ -254,72 +288,33 @@ public class ImapMessageStore implements MessageStore {
 		
 	}
 	
-	private class PushReceiverImpl implements PushReceiver {
+	private class PushReceiverImpl implements ImapPushReceiver {
 		
-		private Context mContext;
-		private MessageListener mMessageListener;
+		private FolderListener mMessageListener;
 		private Folder mFolder;
 				
-		public PushReceiverImpl(Context mContext, MessageListener mMessageListener, Folder mFolder) {
-			super();
-			this.mContext = mContext;
+		public PushReceiverImpl(FolderListener mMessageListener, Folder mFolder) {
 			this.mMessageListener = mMessageListener;
 			this.mFolder = mFolder;
 		}
-
+	
 		@Override
-		public Context getContext() {
-			return mContext;
+		public void onFolderChanged(String folderName) {
+			mMessageListener.onFolderChanged(mFolder);
 		}
-	
 		@Override
-		public void syncFolder(ImapFolder folder) {
-						
-			mMessageListener.listenerStarted(mFolder);			
-		}
-	
-		@Override
-		public void messagesArrived(ImapFolder folder, List<ImapMessage> mess) {
-						
-			
-			mMessageListener.messagesArrived(mFolder, mess.toArray(new Message[0]));
-		}
-	
-		@Override
-		public void messagesFlagsChanged(ImapFolder folder, List<ImapMessage> mess) {}
-	
-		@Override
-		public void messagesRemoved(ImapFolder folder, List<ImapMessage> mess) {}
-	
-		@Override
-		public String getPushState(String folderName) {
-			
-			return mAccount.getPushState();
-			
-		}
-	
-		@Override
-		public void pushError(String errorMessage, Exception e) {
+		public void onListeningError(String folderName, String errorMessage, Exception e) {
 			Log.e(LOG_TAG, "Error while waiting for push");
-		}
-	
-		@Override
-		public void setPushActive(String folderName, boolean enabled) {
-						
 		}
 		
 		@Override
-		public void pushNotSupported() {
-						
-			mMessageListener.listeningNotSupported();
-			
+		public void onPushNotSupported(String folderName) {
+			mMessageListener.onListeningNotSupported();
 		}
 
 		@Override
-		public void sleep(WakeLock wakeLock, long millis) {
-			try {
-				Thread.sleep(millis);
-			} catch (InterruptedException e) {}
+		public void onListeningStarted(String folderName) {
+			mMessageListener.onListeningStarted(mFolder);
 		}
 		
 	}

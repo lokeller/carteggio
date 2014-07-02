@@ -12,8 +12,6 @@
  *******************************************************************************/
 package ch.carteggio.net;
 
-import java.util.Date;
-
 import org.apache.james.mime4j.dom.Entity;
 import org.apache.james.mime4j.dom.Message;
 
@@ -26,17 +24,25 @@ public interface MessageStore {
 
 	public Folder getPrivateFolder();
 
-	public void addMessageListener(Folder folder, MessageListener listener);
+	public void addMessageListener(Folder folder, FolderListener listener);
 	
 	public void removeMessageListeners();
 	
-	public interface MessageListener {
+	public SynchronizationPoint parseSynchronizationPoint(String syncPoint);
+	
+	public interface FolderListener {
 		
-		public void messagesArrived(Folder folder, Message[] messages);
+		public void onFolderChanged(Folder folder);
 		
-		public void listeningNotSupported();
+		public void onListeningNotSupported();
 
-		public void listenerStarted(Folder folder);
+		public void onListeningStarted(Folder folder);
+		
+	}
+	
+	public interface SynchronizationPoint {
+		
+		public String save();
 		
 	}
 	
@@ -44,7 +50,7 @@ public interface MessageStore {
 
 		public MessageStore getMessageStore();
 		
-		public Message[] getMessagesAfter(Date date) throws MessagingException ;
+		public Message[] getMessagesAfter(SynchronizationPoint point) throws MessagingException ;
 
 		public void open() throws MessagingException;
 		

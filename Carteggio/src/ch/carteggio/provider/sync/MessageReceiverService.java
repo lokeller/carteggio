@@ -28,7 +28,7 @@ import ch.carteggio.net.MessageStore;
 import ch.carteggio.net.MessagingException;
 import ch.carteggio.net.NetworkFactories;
 import ch.carteggio.net.MessageStore.Folder;
-import ch.carteggio.net.MessageStore.MessageListener;
+import ch.carteggio.net.MessageStore.FolderListener;
 import ch.carteggio.provider.AuthenticatorService;
 import ch.carteggio.provider.CarteggioAccount;
 import ch.carteggio.provider.CarteggioAccountImpl;
@@ -137,11 +137,11 @@ public class MessageReceiverService extends Service {
 							
 							if ( !mPushActive ) {
 								
-								Log.d(LOG_TAG, "Starting push");
-								
+								Log.d(LOG_TAG, "Starting push");								
 								mStore.addMessageListener(mStore.getInbox(), new MessageListenerImpl());								
 								
 								mPushActive = true;
+								
 							}
 							
 							// we don't actually read the new messages if sync is active because 
@@ -203,8 +203,12 @@ public class MessageReceiverService extends Service {
 			
 				mStore.removeMessageListeners();
 				
-			} catch ( MessagingException ex) {
+			} catch ( Exception ex) {
+
 				Log.e(LOG_TAG, "Error while setting up connection", ex);				
+
+				NotificationService.setReceivingError(getApplicationContext(), true);
+							
 			}
 			
 			mWakeLock.release();
@@ -226,18 +230,18 @@ public class MessageReceiverService extends Service {
 			interrupt();
 		}
 
-		private class MessageListenerImpl implements MessageListener {
+		private class MessageListenerImpl implements FolderListener {
 
 			
 			@Override
-			public void messagesArrived(Folder folder, Message[] messages) {
+			public void onFolderChanged(Folder folder) {
 				
 				Log.d(LOG_TAG, "Incoming message");								
 				
 				try {
 					folder.open();
 					
-					mProcessor.processMessages(folder, messages);
+					mProcessor.processFolder(folder);
 					
 					folder.close();
 				} catch (MessagingException e) {
@@ -246,7 +250,7 @@ public class MessageReceiverService extends Service {
 			}
 
 			@Override
-			public void listeningNotSupported() {
+			public void onListeningNotSupported() {
 				
 				Log.d(LOG_TAG, "Listener not supported");				
 				
@@ -256,7 +260,7 @@ public class MessageReceiverService extends Service {
 			}
 
 			@Override
-			public void listenerStarted(Folder folder) {
+			public void onListeningStarted(Folder folder) {
 				
 				Log.d(LOG_TAG, "Listener was started");				
 				

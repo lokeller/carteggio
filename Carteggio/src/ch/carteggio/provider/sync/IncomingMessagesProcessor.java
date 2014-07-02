@@ -37,6 +37,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
 import ch.carteggio.net.MessageStore;
+import ch.carteggio.net.MessageStore.SynchronizationPoint;
 import ch.carteggio.net.MessagingException;
 import ch.carteggio.net.MessageStore.Folder;
 import ch.carteggio.provider.CarteggioAccount;
@@ -70,21 +71,21 @@ public class IncomingMessagesProcessor {
 	}
 
 	public void processFolder(MessageStore.Folder folder) throws MessagingException {
-				
-		// store the date at which we start the download
-		Date checkDate = new Date();
-	
+		
+		SynchronizationPoint syncPoint = folder.getMessageStore().parseSynchronizationPoint(mAccount.getPushState());
+		
 		// get the list of all messages that have been added since the last time we 
 		// checked the mailbox					 
 		
-		Message[] messages = folder.getMessagesAfter(mAccount.getLastCheckDate());
-							
+		Message[] messages = folder.getMessagesAfter(syncPoint);
+		
+		mAccount.setPushState(syncPoint.save());
+		
 		// now look for messages that are for us and update the database
 		processMessages(folder, messages);
 		
-		// update the time of the last check
-		mAccount.setLastCheckDate(checkDate);
-				
+		
+		
 	}
 
 	public void processMessages(MessageStore.Folder folder, Message[] messages) throws MessagingException {
