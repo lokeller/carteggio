@@ -24,8 +24,15 @@ public class CarteggioApplication extends Application {
 		super.onCreate();
 				
 		NetworkFactories.getInstance(getApplicationContext()).registerStoreFactory("imap", new ImapMessageStore.Factory(getApplicationContext()));
-		NetworkFactories.getInstance(getApplicationContext()).registerStoreFactory("imaps", new ImapMessageStore.Factory(getApplicationContext()));
+		NetworkFactories.getInstance(getApplicationContext()).registerStoreFactory("imap+ssl+", new ImapMessageStore.Factory(getApplicationContext()));
+		NetworkFactories.getInstance(getApplicationContext()).registerStoreFactory("imap+tls+", new ImapMessageStore.Factory(getApplicationContext()));
+		
+		
 		NetworkFactories.getInstance(getApplicationContext()).registerTransportFactory("smtp", new SmtpMessageTransport.Factory());
+
+		NetworkFactories.getInstance(getApplicationContext()).registerTransportFactory("smtp+ssl+", new SmtpMessageTransport.Factory());
+
+		NetworkFactories.getInstance(getApplicationContext()).registerTransportFactory("smtp+tls+", new SmtpMessageTransport.Factory());
 				
 	}
 
