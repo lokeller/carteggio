@@ -20,7 +20,10 @@ package ch.carteggio.net.imap;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
 
 import android.content.Context;
 import android.os.PowerManager;
@@ -31,7 +34,22 @@ import ch.carteggio.net.imap.ImapIdleSession.IdleListener;
 
 /**
  * 
- * Starts and stops pushers for a list of folders.
+ * This class is used to monitor multiple IMAP folders for changes.
+ * 
+ * The changes to the folder are delivered to the {@link ImapPushReceiver}
+ * class passed in the constructor. A client of this class starts the
+ * listening by calling the method {@link ImapStore.start}. 
+ * 
+ * The class starts one thread for every folder that has to be observed.
+ * This thread initiates an {@link ImapIdleSession} the folder and
+ * automatically re-start the session if an error occurs. It stop only
+ * if either the method {@link ImapStore.stop} is called or the server 
+ * notifies that it doesn't support IMAP idle.
+ * 
+ * Notifications for changes are forwarded to the designated 
+ * {@link ImapPushReceiver} from a listener that is registered on the
+ * {@link ImapIdleSession}. See {@link ImapPushReceiver} for a description
+ * of the events that are notified.
  * 
  */
 
@@ -84,6 +102,7 @@ public class ImapStoreMonitor {
     }
 
     public void stop() {
+    	
         if (ImapStore.DEBUG)
             Log.i(ImapStore.LOG_TAG, "Requested stop of IMAP pusher");
 
@@ -112,6 +131,12 @@ public class ImapStoreMonitor {
 		private ImapIdleSession mSession;
 		
 	    private final AtomicInteger mDelayTime = new AtomicInteger(ImapStore.NORMAL_DELAY_TIME);
+	
+	    private boolean mCanConnect = false;
+	    private boolean mCanWait = false;
+	    
+	    private final Object mWaitObject = new Object();
+	    private Semaphore mSemaphore = new Semaphore(1);
 	    
 	    private WakeLock mWakeLock;
 		
@@ -125,8 +150,38 @@ public class ImapStoreMonitor {
 		}
 
 	    public void stopWaiting() {
-	    	interrupt();
-	    	mSession.stopWaiting();
+	    	
+	    	// stop pending IDLE session and prevent further sessions
+	    	try {
+		    	
+	    		
+	    		// we wait until either no session is ideling or the 
+	    		// session is sucessfully ideling
+	    		mSemaphore.acquire();
+		    	
+		    	// no more connections will happen after this call
+		    	mCanConnect = true;
+		    	
+		    	// stop any pending session
+		    	mSession.stopWaiting();
+		    
+	    	} catch (InterruptedException ex) {
+	    		// this should not happen
+	    	} finally {
+	    		mSemaphore.release();
+	    	}
+	    	
+	    	
+	    	// stop waiting and prevent further wait
+	    	synchronized (mWaitObject) {
+	    		
+	    		// no more will happen after this line
+	    		mCanWait = false;
+	    		
+	    		// stop any pending wait
+		    	interrupt();	
+			}
+	    	
 	    }
 	    
 		public void run() {
@@ -137,38 +192,74 @@ public class ImapStoreMonitor {
 	 
 	    	try {
 	
-		        while (!isInterrupted()) {
+		        while (mCanConnect) {
 		        	
 		            try {
 		            	
 		            	mSession.open(ImapSession.OPEN_MODE_RO);
-		            	
+		
+		            	// if the server says we cannot do IDLE we need to abort.
 		            	if (!mSession.isIdleCapable()) {
 		            		mReceiver.onPushNotSupported(mSession.getFolderName().getName());
 		            		break;
 		            	}
 	
-		            	mSession.waitForNewMessages(this);
+		            	if (isInterrupted()) {
+		            		break;
+		            	}
 		            	
+		            	mSemaphore.acquire();
+		            	
+		            	try { 
+			            
+		            		if (!mCanConnect) break;
+			            		
+			                mSession.waitForNewMessages(new IdleListener() {
+								
+								@Override
+								public void onIdleStarted() {
+									
+									mReceiver.onListeningStarted(mSession.getFolderName().getName());
+						        	
+									mWakeLock.release();
+						      	     
+									mSemaphore.release();
+															
+								}
+							});					
+
+		            	} finally {
+		            		mSemaphore.release();
+		            	}
+		            	
+		            	// this was a successful attempt to connect, we can reset the 
+		            	// delay between attempts
 		                mDelayTime.set(ImapStore.NORMAL_DELAY_TIME);
 	
 		            } catch (Exception e) {
 		            	
 		            	Log.e(ImapStore.LOG_TAG, "Error while IDLEing", e);
 	
+		            	// we need to re-acquire the wake lock because it may have been
+		            	// released when we started idleing (see the onIdleStarted method)
 		            	mWakeLock.acquire(PUSH_WAKE_LOCK_TIMEOUT);
 		     
-		                if (isInterrupted()) {
-		                	break;
-		                }
-	
 	                    int delayTimeInt = mDelayTime.get();
+	         
 	                    
-	                    try {
-	                    	Thread.sleep(delayTimeInt);
-	                    } catch (InterruptedException ex) {
-	                    	break;
-	                    }
+	                    synchronized (mWaitObject) {
+							
+	                    	try {
+	                    		
+	                            if (mCanWait) break;
+				              
+		                    	mWaitObject.wait(delayTimeInt);
+		                    
+	                    	} catch (InterruptedException ex) {
+		                    	break;
+		                    }
+		                    
+						}
 	                    	
 	                    delayTimeInt *= 2;
 	                    if (delayTimeInt > ImapStore.MAX_DELAY_TIME) {
@@ -187,10 +278,7 @@ public class ImapStoreMonitor {
 		@Override
 		public void onIdleStarted() {
 
-			mReceiver.onListeningStarted(mSession.getFolderName().getName());
-        	
-			mWakeLock.release();
-      	     
+			
 		}    	
 		
 	}
