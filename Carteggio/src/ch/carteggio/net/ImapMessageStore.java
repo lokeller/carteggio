@@ -20,7 +20,6 @@ import org.apache.james.mime4j.dom.Entity;
 import org.apache.james.mime4j.dom.Message;
 
 import android.content.Context;
-import android.os.PowerManager.WakeLock;
 import android.util.Log;
 import ch.carteggio.net.imap.FetchProfile;
 import ch.carteggio.net.imap.FetchProfile.Item;
@@ -38,13 +37,10 @@ public class ImapMessageStore implements MessageStore {
 	
 	private static final String LOG_TAG = "ImapMessageStore";
 	
-	private Context mContext;
-	
 	private ArrayList<ImapStoreMonitor> mPushers = new ArrayList<ImapStoreMonitor>();
 		
 	private ImapMessageStore(Context context, ImapStore store) {
 		this.mStore = store;
-		this.mContext = context;
 	}
 
 	@Override
