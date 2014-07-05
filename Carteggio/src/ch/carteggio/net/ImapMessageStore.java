@@ -62,7 +62,7 @@ public class ImapMessageStore implements MessageStore {
 	
 	
 	@Override
-	public SynchronizationPoint parseSynchronizationPoint(String syncPoint) {
+	public SynchronizationPoint createSynchronizationPoint(String syncPoint) {
 		
 		if (syncPoint == null) return new ImapSynchronizationPoint(-1);
 		

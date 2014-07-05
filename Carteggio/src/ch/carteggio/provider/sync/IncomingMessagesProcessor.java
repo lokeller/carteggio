@@ -72,7 +72,7 @@ public class IncomingMessagesProcessor {
 
 	public void processFolder(MessageStore.Folder folder) throws MessagingException {
 		
-		SynchronizationPoint syncPoint = folder.getMessageStore().parseSynchronizationPoint(mAccount.getPushState());
+		SynchronizationPoint syncPoint = folder.getMessageStore().createSynchronizationPoint(mAccount.getPushState());
 		
 		// get the list of all messages that have been added since the last time we 
 		// checked the mailbox					 

@@ -155,7 +155,7 @@ public class MessageReceiverService extends Service {
 								Log.d(LOG_TAG, "Starting waiting for messages");
 								
 								// we get the sync point but we will not save it (we save it only after processing the messages)
-								SynchronizationPoint syncPoint = mStore.parseSynchronizationPoint(mAccount.getPushState());
+								SynchronizationPoint syncPoint = mStore.createSynchronizationPoint(mAccount.getPushState());
 								mFolder.waitForChanges(syncPoint, mWakeLock);
 						
 								Log.d(LOG_TAG, "Folder has changed, processing new messages");
