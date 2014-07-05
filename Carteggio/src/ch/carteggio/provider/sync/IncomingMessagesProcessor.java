@@ -79,12 +79,11 @@ public class IncomingMessagesProcessor {
 		
 		Message[] messages = folder.getMessagesAfter(syncPoint);
 		
-		mAccount.setPushState(syncPoint.save());
-		
 		// now look for messages that are for us and update the database
 		processMessages(folder, messages);
 		
-		
+		// save the sync point only after we finished processing the messages
+		mAccount.setPushState(syncPoint.save());
 		
 	}
 

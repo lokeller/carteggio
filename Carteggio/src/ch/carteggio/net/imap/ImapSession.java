@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.james.mime4j.codec.Base64InputStream;
 import org.apache.james.mime4j.codec.DecodeMonitor;
@@ -51,6 +52,8 @@ import org.apache.james.mime4j.storage.StorageBodyFactory;
 import org.apache.james.mime4j.stream.RawField;
 import org.apache.james.mime4j.util.MimeUtil;
 
+import android.annotation.SuppressLint;
+import android.os.PowerManager.WakeLock;
 import android.util.Log;
 import ch.carteggio.net.MessagingException;
 import ch.carteggio.net.imap.ImapConnection.UntaggedHandler;
@@ -1580,9 +1583,98 @@ public class ImapSession {
 
 	}
 
-	public boolean isIdleCapable() {
+	public boolean isIdleCapable() throws MessagingException {
+		
+		checkOpen();
+        
 		return mConnection.isIdleCapable();
 	}
+	
+	
+	/**
+	 * 
+	 * This function blocks until a change in the folder happens or an communication
+	 * error occurs. The caller can pass a currently held wakelock that will be released
+	 * while we wait for updates and will be re-acquired when we return from the function.
+	 * 
+	 * @param wakeLock a currently held wakelock or null if no wakelock has to be released while waiting
+	 * @throws MessagingException the session doesn't support waiting for changes or an communication error occured
+	 */
+    public void waitForChanges(final WakeLock wakeLock) throws MessagingException {
+
+    	final AtomicBoolean lockReleased = new AtomicBoolean(false);
+    	
+    	try {
+	    	
+	    	checkOpen();
+	        
+	        if (!mConnection.isIdleCapable()) {
+	            throw new MessagingException("IMAP server is not IDLE capable:" + mConnection.toString());
+	        }
+	
+	        try {
+	        
+	        	
+		        mConnection.setReadTimeout((mStore.getPreferences().getIdleRefreshMinutes() * 60 * 1000) + ImapStore.IDLE_READ_TIMEOUT_INCREMENT);
+		        executeSimpleCommand(ImapStore.COMMAND_IDLE, false, new UntaggedHandler() {
+					
+		        	boolean doneSent;
+		        	boolean continuationReceived;
+		        	
+					@SuppressLint("Wakelock")
+					@Override
+					public void handleAsyncUntaggedResponse(ImapResponse respose) {
+						
+						if (respose.mCommandContinuationRequested) {
+							
+							continuationReceived = true;
+			
+							// release the wake lock while we wait for updates from the server
+							if (wakeLock != null) {
+								lockReleased.set(true);								
+								wakeLock.release();
+							}
+							
+						} else if (!doneSent && continuationReceived){
+					
+							// re-acquire the log since we are going to stop to wait for updates
+							if (wakeLock != null) {
+								lockReleased.set(false);
+								wakeLock.acquire();
+							}
+							
+							try {
+								mConnection.setReadTimeout(ImapStore.SOCKET_READ_TIMEOUT);
+					            mConnection.sendContinuation("DONE");
+							} catch (IOException ex) {
+								Log.e(getLogId(), "Error while shutting down IDLE", ex);
+							}
+							
+				            doneSent = true;
+							
+						}
+						
+						mState.handleUntaggedResponse(respose);
+						
+					}
+				});
+		        
+	        } catch (IOException ex) {
+	        	
+	        	mConnection.close();
+	        	
+	        	throw new MessagingException("Error while IDLEing", ex);
+	        }
+        
+    	} finally {
+    		
+    		// make sure re-acquire the lock even if there was an error and 
+    		// we could not send a DONE message
+    		if (wakeLock != null && lockReleased.get()) wakeLock.acquire();
+    	}
+        
+
+    }
 	
 	interface ImapSearcher {
 	    List<ImapResponse> search() throws IOException, MessagingException;

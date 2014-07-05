@@ -15,6 +15,8 @@ package ch.carteggio.net;
 import org.apache.james.mime4j.dom.Entity;
 import org.apache.james.mime4j.dom.Message;
 
+import android.os.PowerManager.WakeLock;
+
 import ch.carteggio.provider.CarteggioAccount;
 
 
@@ -24,21 +26,7 @@ public interface MessageStore {
 
 	public Folder getPrivateFolder();
 
-	public void addMessageListener(Folder folder, FolderListener listener);
-	
-	public void removeMessageListeners();
-	
 	public SynchronizationPoint parseSynchronizationPoint(String syncPoint);
-	
-	public interface FolderListener {
-		
-		public void onFolderChanged(Folder folder);
-		
-		public void onListeningNotSupported();
-
-		public void onListeningStarted(Folder folder);
-		
-	}
 	
 	public interface SynchronizationPoint {
 		
@@ -64,6 +52,9 @@ public interface MessageStore {
 
 		public void fetchPart(Message msg, Entity entity) throws MessagingException;
 		
+		public void waitForChanges(SynchronizationPoint point, WakeLock wakeLock) throws MessagingException;
+		
+		public boolean isWaitingForChangedSupported() throws MessagingException;
 	}
 		
 	public interface Factory {

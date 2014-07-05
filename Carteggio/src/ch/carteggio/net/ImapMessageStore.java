@@ -14,66 +14,37 @@ package ch.carteggio.net;
 
 
 import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.james.mime4j.dom.Entity;
 import org.apache.james.mime4j.dom.Message;
 
 import android.content.Context;
+import android.os.PowerManager.WakeLock;
 import android.util.Log;
 import ch.carteggio.net.imap.FetchProfile;
 import ch.carteggio.net.imap.FetchProfile.Item;
 import ch.carteggio.net.imap.ImapMessage;
 import ch.carteggio.net.imap.ImapPreferences;
-import ch.carteggio.net.imap.ImapPushReceiver;
 import ch.carteggio.net.imap.ImapSession;
 import ch.carteggio.net.imap.ImapStore;
-import ch.carteggio.net.imap.ImapStoreMonitor;
 import ch.carteggio.provider.CarteggioAccount;
 
 public class ImapMessageStore implements MessageStore {
+
+	private static final String FOLDER_NAME = "INBOX";
 
 	private ImapStore mStore;
 	
 	private static final String LOG_TAG = "ImapMessageStore";
 	
-	private ArrayList<ImapStoreMonitor> mPushers = new ArrayList<ImapStoreMonitor>();
-		
 	private ImapMessageStore(Context context, ImapStore store) {
 		this.mStore = store;
 	}
 
 	@Override
-	public void addMessageListener(MessageStore.Folder folder, FolderListener listener) {
-			
-		ImapStoreMonitor pusher = mStore.createMonitor(new PushReceiverImpl(listener, (Folder) folder));
-		
-		List<String> folders = new ArrayList<String>();
-		
-		folders.add(((Folder) folder).mFolder.getFolderName().getName());
-		
-		pusher.start(folders);
-		
-		mPushers.add(pusher);
-		
-	}
-
-
-	@Override
-	public void removeMessageListeners() {
-
-		for ( ImapStoreMonitor p : mPushers) {
-			p.stop();
-		}
-		
-		mPushers.clear();
-		
-	}
-
-	@Override
 	public Folder getInbox() {
 	
-		ImapSession imapFolder = mStore.getSession("INBOX");
+		ImapSession imapFolder = mStore.getSession(FOLDER_NAME);
 				
 		return new Folder(imapFolder);
 				
@@ -110,8 +81,8 @@ public class ImapMessageStore implements MessageStore {
 			this.nextMinimumMessageUid = nextMinimumMessageUid;
 		}
 
-		public void update(long messageId) {
-			nextMinimumMessageUid = Math.max(messageId + 1, nextMinimumMessageUid);
+		public void update(long nextMessageId) {
+			nextMinimumMessageUid = Math.max(nextMessageId, nextMinimumMessageUid);
 		}
 
 		@Override
@@ -155,7 +126,7 @@ public class ImapMessageStore implements MessageStore {
 				// uid and next time we will be able to look for new messages
 				if  (imapSyncPoint.nextMinimumMessageUid == -1) {
 					
-					imapSyncPoint.update(mFolder.getHighestUid());
+					imapSyncPoint.update(mFolder.getHighestUid() + 1);
 					
 					return new Message[0];
 				} else {
@@ -163,7 +134,7 @@ public class ImapMessageStore implements MessageStore {
 					ImapMessage[] imapMessages = mFolder.getMessagesAddedAfter(imapSyncPoint.nextMinimumMessageUid, null);
 					
 					for ( ImapMessage message : imapMessages ) {
-						imapSyncPoint.update(message.getUid());					
+						imapSyncPoint.update(message.getUid() + 1);					
 					}
 					
 					return imapMessages;
@@ -175,6 +146,28 @@ public class ImapMessageStore implements MessageStore {
 		
 		}
 		
+		@Override
+		public void waitForChanges(SynchronizationPoint point, WakeLock wakeLock) throws MessagingException  {
+			
+			ImapSynchronizationPoint imapSyncPoint = (ImapSynchronizationPoint) point;
+			
+			// check if there was already a new message coming in from the sync point
+			
+			long highestUid = mFolder.getHighestUid();
+			
+			if ( highestUid >= imapSyncPoint.nextMinimumMessageUid) {
+				imapSyncPoint.update(highestUid);
+				return;
+			}
+			
+			mFolder.waitForChanges(wakeLock);
+			
+		}
+		
+		@Override
+		public boolean isWaitingForChangedSupported() throws MessagingException {
+			return mFolder.isIdleCapable();
+		}
 
 		@Override
 		public void fetchEnvelopes(Message[] messages) throws MessagingException {
@@ -283,36 +276,5 @@ public class ImapMessageStore implements MessageStore {
 		}
 		
 	}
-	
-	private class PushReceiverImpl implements ImapPushReceiver {
 		
-		private FolderListener mMessageListener;
-		private Folder mFolder;
-				
-		public PushReceiverImpl(FolderListener mMessageListener, Folder mFolder) {
-			this.mMessageListener = mMessageListener;
-			this.mFolder = mFolder;
-		}
-	
-		@Override
-		public void onFolderChanged(String folderName) {
-			mMessageListener.onFolderChanged(mFolder);
-		}
-		@Override
-		public void onListeningError(String folderName, String errorMessage, Exception e) {
-			Log.e(LOG_TAG, "Error while waiting for push");
-		}
-		
-		@Override
-		public void onPushNotSupported(String folderName) {
-			mMessageListener.onListeningNotSupported();
-		}
-
-		@Override
-		public void onListeningStarted(String folderName) {
-			mMessageListener.onListeningStarted(mFolder);
-		}
-		
-	}
-	
 }

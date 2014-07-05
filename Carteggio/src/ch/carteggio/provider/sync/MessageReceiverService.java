@@ -14,8 +14,6 @@ package ch.carteggio.provider.sync;
 
 import java.util.ArrayList;
 
-import org.apache.james.mime4j.dom.Message;
-
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.app.Service;
@@ -28,7 +26,7 @@ import ch.carteggio.net.MessageStore;
 import ch.carteggio.net.MessagingException;
 import ch.carteggio.net.NetworkFactories;
 import ch.carteggio.net.MessageStore.Folder;
-import ch.carteggio.net.MessageStore.FolderListener;
+import ch.carteggio.net.MessageStore.SynchronizationPoint;
 import ch.carteggio.provider.AuthenticatorService;
 import ch.carteggio.provider.CarteggioAccount;
 import ch.carteggio.provider.CarteggioAccountImpl;
@@ -111,11 +109,13 @@ public class MessageReceiverService extends Service {
 		private boolean mPushActive;		
 		private boolean mPushAvailable;
 		
+		private Folder mFolder = null;
+		
 		private MessageReceiver(CarteggioAccount account) {
 			this.mAccount = account;						
 		}
 		
-		public synchronized void run() {
+		public void run() {
 						
 			mWakeLock.acquire();
 			
@@ -125,7 +125,6 @@ public class MessageReceiverService extends Service {
 				
 				mStore = NetworkFactories.getInstance(getApplicationContext()).getMessageStore(mAccount);	
 																			
-				Folder mFolder = null;
 				
 				mPushAvailable = true;
 				
@@ -133,43 +132,45 @@ public class MessageReceiverService extends Service {
 					
 					try {
 					
-						if ( mPushAvailable ) {							
+					
+						// open a connection if necessary
+						if ( mFolder == null) {
+						
+							Log.d(LOG_TAG, "Opening inbox");
 							
-							if ( !mPushActive ) {
+							mFolder = mStore.getInbox();						
+							mFolder.open();
 								
-								Log.d(LOG_TAG, "Starting push");								
-								mStore.addMessageListener(mStore.getInbox(), new MessageListenerImpl());								
+						}
+						
+						
+						// if we can we start waiting for change notifications from
+						// the server. We will stop only when the server the thread is
+						// interrupted
+						if ( mFolder.isWaitingForChangedSupported()) {
+							
+							while (!interrupted()) {
 								
-								mPushActive = true;
+
+								Log.d(LOG_TAG, "Starting waiting for messages");
+								
+								// we get the sync point but we will not save it (we save it only after processing the messages)
+								SynchronizationPoint syncPoint = mStore.parseSynchronizationPoint(mAccount.getPushState());
+								mFolder.waitForChanges(syncPoint, mWakeLock);
+						
+								Log.d(LOG_TAG, "Folder has changed, processing new messages");
+								
+								mProcessor.processFolder(mFolder);
 								
 							}
-							
-							// we don't actually read the new messages if sync is active because 
-							// we will receive a notification
-							
-							Log.d(LOG_TAG, "Poll ignored because we are IDLEing");
 							
 						} else {
-							
-							// the server doesn't support push, then let's run a poll
-							
-							
-							// open a connection if necessary
-							if ( mFolder == null) {
-							
-								Log.d(LOG_TAG, "Starting poll");
-								
-								mFolder = mStore.getInbox();						
-								mFolder.open();
-									
-							}
 											
 							Log.d(LOG_TAG, "Polling");
 							
 							mProcessor.processFolder(mFolder);
-							
-						}						
-						
+						}
+					
 						NotificationService.setReceivingError(getApplicationContext(), false);
 						
 					} catch (MessagingException e) {
@@ -184,35 +185,40 @@ public class MessageReceiverService extends Service {
 						NotificationService.setReceivingError(getApplicationContext(), true);
 												
 					} finally {
+					
 						mWakeLock.release();
+			
 					}
 					
 					try {
 						
-						wait();
+						synchronized (this) {
+							wait();	
+						}
 						
 					} catch (InterruptedException e) {
 						break;
 					}				
 				
+					mWakeLock.acquire();
+			
 				}
 				
 				if ( mFolder != null) {
-					mFolder.close();
+					try { mFolder.close(); } catch (Exception e2) {}
 				}
-			
-				mStore.removeMessageListeners();
-				
+							
 			} catch ( Exception ex) {
 
-				Log.e(LOG_TAG, "Error while setting up connection", ex);				
+				Log.e(LOG_TAG, "Error while receiving messages", ex);				
 
 				NotificationService.setReceivingError(getApplicationContext(), true);
 							
+			} finally {
+				
+				if (mWakeLock.isHeld()) mWakeLock.release();
+			
 			}
-			
-			mWakeLock.release();
-			
 			
 		}
 		
@@ -221,60 +227,15 @@ public class MessageReceiverService extends Service {
 			
 			Log.d(LOG_TAG, "Poll requested");
 
-			mWakeLock.acquire();
-			
 			notifyAll();			
 		}
 
-		public synchronized void shutdown() {
+		public void shutdown() {
+
 			interrupt();
-		}
-
-		private class MessageListenerImpl implements FolderListener {
-
 			
-			@Override
-			public void onFolderChanged(Folder folder) {
-				
-				Log.d(LOG_TAG, "Incoming message");								
-				
-				try {
-					folder.open();
-					
-					mProcessor.processFolder(folder);
-					
-					folder.close();
-				} catch (MessagingException e) {
-					Log.e(LOG_TAG, "Error while processsing incoming messages", e);
-				}
-			}
-
-			@Override
-			public void onListeningNotSupported() {
-				
-				Log.d(LOG_TAG, "Listener not supported");				
-				
-				mAccount.setPushEnabled(false);			
-				mPushAvailable = false;
-				poll();
-			}
-
-			@Override
-			public void onListeningStarted(Folder folder) {
-				
-				Log.d(LOG_TAG, "Listener was started");				
-				
-				try {
-					folder.open();
-					
-					mProcessor.processFolder(folder);
-					
-					folder.close();
-				} catch (MessagingException e) {			
-					Log.e(LOG_TAG, "Error intially processing folder", e);
-				}
-			}
-
+			try { mFolder.close(); } catch (Exception e2) {}
+			
 		}
 				
 	

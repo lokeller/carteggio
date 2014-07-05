@@ -457,10 +457,5 @@ public class ImapStore {
     ImapPreferences getPreferences() {
     	return mPreferences;
     }
-
-    public ImapStoreMonitor createMonitor(ImapPushReceiver receiver) {
-        return new ImapStoreMonitor(this, receiver);
-    }
-    
     
 }
