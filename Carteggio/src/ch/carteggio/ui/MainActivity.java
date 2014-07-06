@@ -178,8 +178,6 @@ public class MainActivity extends Activity {
 				
 				intent.putExtra("account", accountsByType[0]);
 				
-				intent.setAction(ch.carteggio.ui.EditAccountActivity.ACTION_EDIT);
-				
 				startActivity(intent);
 				
 			}

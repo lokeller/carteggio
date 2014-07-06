@@ -13,6 +13,7 @@
 package ch.carteggio.provider;
 
 import ch.carteggio.ui.EditAccountActivity;
+import ch.carteggio.ui.NewAccountActivity;
 import android.accounts.AbstractAccountAuthenticator;
 import android.accounts.Account;
 import android.accounts.AccountAuthenticatorResponse;
@@ -82,10 +83,9 @@ public class AuthenticatorService extends Service {
 			
 			Bundle bundle = new Bundle();
 			
-			Intent intent = new Intent(mContext, EditAccountActivity.class);
+			Intent intent = new Intent(mContext, NewAccountActivity.class);
 			
 			intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
-			intent.setAction(EditAccountActivity.ACTION_CREATE);
 			
 			bundle.putParcelable(AccountManager.KEY_INTENT, intent);
 			

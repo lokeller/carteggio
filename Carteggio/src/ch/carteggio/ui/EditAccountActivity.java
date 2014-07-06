@@ -12,34 +12,23 @@
  *******************************************************************************/
 package ch.carteggio.ui;
 
-import java.util.Date;
-
 import android.accounts.Account;
 import android.accounts.AccountAuthenticatorResponse;
 import android.accounts.AccountManager;
 import android.app.Activity;
-import android.content.ContentResolver;
-import android.content.ContentUris;
-import android.content.ContentValues;
 import android.content.Intent;
-import android.database.Cursor;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
-import ch.carteggio.provider.AuthenticatorService;
-import ch.carteggio.provider.CarteggioContract;
-import ch.carteggio.provider.CarteggioProviderHelper;
-import ch.carteggio.provider.CarteggioContract.Contacts;
-import ch.carteggio.provider.sync.MessageReceiverService;
 import ch.carteggio.R;
+import ch.carteggio.provider.AuthenticatorService;
+import ch.carteggio.provider.CarteggioProviderHelper;
+import ch.carteggio.provider.sync.MessageReceiverService;
 
 public class EditAccountActivity extends Activity {
 
-	public final static String ACTION_EDIT = "ch.carteggio.ui.EditAccountActivity.ACTION_EDIT";
-	public final static String ACTION_CREATE = "ch.carteggio.ui.EditAccountActivity.ACTION_CREATE";
-	
     private AccountAuthenticatorResponse mAccountAuthenticatorResponse = null;
     
     private Account mAccount;
@@ -64,28 +53,26 @@ public class EditAccountActivity extends Activity {
 		mIncomingPasswordText = ((TextView) findViewById(R.id.account_incoming_password));
 		mOutgoingPasswordText = ((TextView) findViewById(R.id.account_outgoing_password));
 		
-		if ( getIntent().getAction().equals(ACTION_EDIT)) {
-		
-			if (!getIntent().getExtras().containsKey("account")) {
-				throw new IllegalArgumentException("account missing form intent");
-			}
-			
-			mAccount = getIntent().getExtras().getParcelable("account");
-			
-			AccountManager manager = AccountManager.get(this);
-			
-			mEmailText.setText(mAccount.name);
-			mDisplayNameText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_DISPLAY_NAME));			
-			mIncomingServerText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_SERVER));
-			mOutgoingServerText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_SERVER));			
-			mIncomingPasswordText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_PASSWORD));
-			mOutgoingPasswordText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_PASSWORD));
-			
-			mEmailText.setEnabled(false);
-			
-			
+		if (!getIntent().getExtras().containsKey("account")) {
+			throw new IllegalArgumentException("account missing form intent");
 		}
 		
+		mAccount = getIntent().getExtras().getParcelable("account");
+		
+		AccountManager manager = AccountManager.get(this);
+		
+		mEmailText.setText(mAccount.name);
+		mDisplayNameText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_DISPLAY_NAME));			
+		mIncomingServerText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_SERVER));
+		mOutgoingServerText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_SERVER));			
+		mIncomingPasswordText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_PASSWORD));
+		mOutgoingPasswordText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_PASSWORD));
+		
+		mEmailText.setEnabled(false);
+			
+		// This is received when the new account activity couldn't configure
+		// the account and called this activity to let the user finish to setup
+		// the account. We will need to send a response when we are done
 		if ( getIntent().getExtras().containsKey(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE)) {
 			
 			mAccountAuthenticatorResponse = getIntent().getParcelableExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE);
@@ -106,72 +93,38 @@ public class EditAccountActivity extends Activity {
 				return true;
 			}
 			
-			ContentResolver cr = getContentResolver();
+			CarteggioProviderHelper helper = new CarteggioProviderHelper(this);
+			
+			helper.createOrUpdateContact(mAccount.name, 
+					mDisplayNameText.getText().toString(), -1);
 
 			AccountManager manager = AccountManager.get(this);
 			
-			if ( mAccount == null) {
-				
-				Cursor cursor = cr.query(Contacts.CONTENT_URI, new String[] { Contacts._ID }, Contacts.EMAIL + " = ? ", new String[] {mEmailText.getText().toString()}, null);
-
-				long contactId;
-				
-				if ( cursor.getCount() > 0 ) {
-					
-					cursor.moveToFirst();
-					
-					contactId = cursor.getLong(cursor.getColumnIndex(Contacts._ID));
-					
-					updateDisplayName(cr, contactId);
-					
-				} else {
-					
-					ContentValues values = new ContentValues();
-					
-					values.put(Contacts.NAME, mDisplayNameText.getText().toString());
-					values.put(Contacts.EMAIL, mEmailText.getText().toString());
-					
-					contactId = ContentUris.parseId(cr.insert(Contacts.CONTENT_URI, values));
-					
-				}
-				
-				mAccount = new Account(mEmailText.getText().toString(), AuthenticatorService.ACCOUNT_TYPE);
-				
-				Bundle settings = new Bundle();
-				
-				settings.putString(AuthenticatorService.KEY_INCOMING_SERVER, mIncomingServerText.getText().toString());
-				settings.putString(AuthenticatorService.KEY_OUTGOING_SERVER, mOutgoingServerText.getText().toString());
-				settings.putString(AuthenticatorService.KEY_DISPLAY_NAME, mDisplayNameText.getText().toString());
-				settings.putString(AuthenticatorService.KEY_OUTGOING_PASSWORD, mOutgoingPasswordText.getText().toString());
-				settings.putString(AuthenticatorService.KEY_INCOMING_PASSWORD, mIncomingPasswordText.getText().toString());				
-				settings.putString(AuthenticatorService.KEY_LAST_CHECK, Long.toString(new Date().getTime()));
-											
-				ContentResolver.setIsSyncable(mAccount, CarteggioContract.AUTHORITY, 1);
-				ContentResolver.setSyncAutomatically(mAccount, CarteggioContract.AUTHORITY, true);				
-				ContentResolver.addPeriodicSync(mAccount, CarteggioContract.AUTHORITY, new Bundle(), 60);
-				
-				manager.addAccountExplicitly(mAccount, "", settings);				
+			manager.setUserData(mAccount, AuthenticatorService.KEY_INCOMING_SERVER, 
+									mIncomingServerText.getText().toString());
 			
-			} else {
+			manager.setUserData(mAccount, AuthenticatorService.KEY_OUTGOING_SERVER, 
+									mOutgoingServerText.getText().toString());
 			
-				long contactId = ContentUris.parseId(new CarteggioProviderHelper(this).getContact(mAccount.name));
-				
-				updateDisplayName(cr, contactId);
-				
-				manager.setUserData(mAccount, AuthenticatorService.KEY_INCOMING_SERVER, mIncomingServerText.getText().toString());
-				manager.setUserData(mAccount, AuthenticatorService.KEY_OUTGOING_SERVER, mOutgoingServerText.getText().toString());
-				manager.setUserData(mAccount, AuthenticatorService.KEY_DISPLAY_NAME, mDisplayNameText.getText().toString());								
-				manager.setUserData(mAccount, AuthenticatorService.KEY_OUTGOING_PASSWORD, mOutgoingPasswordText.getText().toString());
-				manager.setUserData(mAccount, AuthenticatorService.KEY_INCOMING_PASSWORD, mIncomingPasswordText.getText().toString());
-				
-			}
+			manager.setUserData(mAccount, AuthenticatorService.KEY_DISPLAY_NAME, 
+									mDisplayNameText.getText().toString());								
 			
+			manager.setUserData(mAccount, AuthenticatorService.KEY_OUTGOING_PASSWORD, 
+									mOutgoingPasswordText.getText().toString());
+			
+			manager.setUserData(mAccount, AuthenticatorService.KEY_INCOMING_PASSWORD, 
+									mIncomingPasswordText.getText().toString());
+			
+		
+			// inform that we finished setting up the account
 			if ( mAccountAuthenticatorResponse != null ) {
 				
 				Bundle bundle = new Bundle();
 				
-				bundle.putString(AccountManager.KEY_ACCOUNT_TYPE, AuthenticatorService.ACCOUNT_TYPE);
-				bundle.putString(AccountManager.KEY_ACCOUNT_NAME, mEmailText.getText().toString());
+				bundle.putString(AccountManager.KEY_ACCOUNT_TYPE, 
+									AuthenticatorService.ACCOUNT_TYPE);
+				bundle.putString(AccountManager.KEY_ACCOUNT_NAME, 
+									mEmailText.getText().toString());
 								
 			    mAccountAuthenticatorResponse.onResult(bundle);
 		
@@ -187,12 +140,6 @@ public class EditAccountActivity extends Activity {
 		
 		return super.onOptionsItemSelected(item);		
 		
-	}
-
-	private void updateDisplayName(ContentResolver cr, long contactId) {
-		ContentValues values = new ContentValues();				
-		values.put(Contacts.NAME, mDisplayNameText.getText().toString());		
-		cr.update(ContentUris.withAppendedId(Contacts.CONTENT_URI, contactId), values, null, null);
 	}
 
 	@Override

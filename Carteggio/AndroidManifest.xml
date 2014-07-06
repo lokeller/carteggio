@@ -59,6 +59,10 @@
             		android:label="@string/edit_account"
             		android:exported="true"/>
         
+        
+        <activity android:name=".ui.NewAccountActivity"
+            		android:label="@string/title_setup"/>
+        
         <activity android:name=".ui.AboutActivity"
             		android:label="@string/title_about"/>
         

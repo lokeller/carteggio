@@ -29,7 +29,17 @@
     <string name="action_accept">Accept</string>
     <string name="outgoing_server_password">Outgoing server password</string>
     <string name="start_new_conversation">Start a new conversation...</string>
-    
-    
+    <string name="try_autoconfigure">Try to autoconfigure settings</string>
+    <string name="email_password">Password</string>
+    <string name="your_name">Your name</string>
+    <string name="your_email">Your email address</string>
+    <string name="your_email_password">Your email password</string>
+    <string name="welcome">Welcome to Carteggio</string>
+    <string name="welcome_explanation">To start using carteggio you need to configure your email account. Carteggio uses your current email account to send and receive messages.</string>
+    <string name="save">Save</string>
+    <string name="title_setup">Setup Carteggio</string>
+    <string name="message_autoconfig_failed">Autoconfiguration failed. Please configure manually the mailbox settings.</string>
+    <string name="label_incoming_description">proto is either imap (for standard imap), imap+ssl+ (for imap over ssl) or imap+tls (for imap with STARTTLS).</string>
+    <string name="label_outgoing_description">proto can be either smtp (for plain smtp), smtp+tls+ (for STARTTLS with SMTP) or smtp+ssl+ (for SMTP over TLS)</string>    
     
 </resources>
