@@ -106,7 +106,7 @@
             android:layout_marginRight="24dip"
             android:layout_marginTop="8dip"
             android:ems="10"
-            android:hint="Password"
+            android:hint="@string/hint_password"
             android:inputType="textPassword" />
 
         <TextView
@@ -153,7 +153,7 @@
             android:layout_marginRight="24dip"
             android:layout_marginTop="8dip"
             android:ems="10"
-            android:hint="Password"
+            android:hint="@string/hint_password"
             android:inputType="textPassword" />
     </LinearLayout>
 
