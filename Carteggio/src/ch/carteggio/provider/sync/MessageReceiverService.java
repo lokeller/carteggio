@@ -17,7 +17,10 @@ import java.util.ArrayList;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
@@ -40,8 +43,6 @@ public class MessageReceiverService extends Service {
 	public static final String ACTION_POLL = "ch.carteggio.provider.sync.MessageReceiverService.ACTION_POLL";	
 	
 	private WakeLock mWakeLock;
-	
-	private static final int ERROR_NOTIFICATION_ID = 2;	
 	
 	@Override
 	public void onCreate() {
@@ -106,9 +107,8 @@ public class MessageReceiverService extends Service {
 		
 		private MessageStore mStore;
 		
-		private boolean mPushActive;		
-		private boolean mPushAvailable;
-		
+		// design consideration: we keep the reference for the folder
+		// here to be able to close it when we receive the shutdown call
 		private Folder mFolder = null;
 		
 		private MessageReceiver(CarteggioAccount account) {
@@ -124,88 +124,29 @@ public class MessageReceiverService extends Service {
 				mProcessor = new IncomingMessagesProcessor(getApplicationContext(), mAccount);
 				
 				mStore = NetworkFactories.getInstance(getApplicationContext()).getMessageStore(mAccount);	
-																			
-				
-				mPushAvailable = true;
+
+				ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 				
 				while ( !interrupted() ) { 
-					
-					try {
-					
-					
-						// open a connection if necessary
-						if ( mFolder == null) {
-						
-							Log.d(LOG_TAG, "Opening inbox");
-							
-							mFolder = mStore.getInbox();						
-							mFolder.open();
-								
-						}
-						
-						
-						// if we can we start waiting for change notifications from
-						// the server. We will stop only when the server the thread is
-						// interrupted
-						if ( mFolder.isWaitingForChangedSupported()) {
-							
-							while (!interrupted()) {
-								
 
-								Log.d(LOG_TAG, "Starting waiting for messages");
-								
-								// we get the sync point but we will not save it (we save it only after processing the messages)
-								SynchronizationPoint syncPoint = mStore.createSynchronizationPoint(mAccount.getPushState());
-								mFolder.waitForChanges(syncPoint, mWakeLock);
-						
-								Log.d(LOG_TAG, "Folder has changed, processing new messages");
-								
-								mProcessor.processFolder(mFolder);
-								
-							}
-							
-						} else {
-											
-							Log.d(LOG_TAG, "Polling");
-							
-							mProcessor.processFolder(mFolder);
-						}
+					// check messages only if a connection is available
+					NetworkInfo activeNetwork = connectivityManager.getActiveNetworkInfo();
 					
-						NotificationService.setReceivingError(getApplicationContext(), false);
-						
-					} catch (MessagingException e) {
-						
-						Log.e(LOG_TAG, "Error while polling folder", e);
-						
-						if ( mFolder != null) {
-							try { mFolder.close(); } catch (Exception e2) {}
-							mFolder = null;
-						}
-						
-						NotificationService.setReceivingError(getApplicationContext(), true);
-												
-					} finally {
-					
-						mWakeLock.release();
-			
+					if (activeNetwork != null && activeNetwork.isConnected()) {
+							checkMessages();
 					}
-					
-					try {
 						
-						synchronized (this) {
-							wait();	
-						}
-						
-					} catch (InterruptedException e) {
-						break;
-					}				
-				
+					// wait until we receive instruction to check messages again
+					// while we wait we will not hold the wake lock
+			
+					mWakeLock.release();
+
+					synchronized (this) {
+						wait();	
+					}
+
 					mWakeLock.acquire();
 			
-				}
-				
-				if ( mFolder != null) {
-					try { mFolder.close(); } catch (Exception e2) {}
 				}
 							
 			} catch ( Exception ex) {
@@ -216,12 +157,83 @@ public class MessageReceiverService extends Service {
 							
 			} finally {
 				
+				// release the wake lock if we are still holding it
 				if (mWakeLock.isHeld()) mWakeLock.release();
 			
 			}
 			
 		}
-		
+
+		private void checkMessages() {
+			
+			try {
+			
+				Log.d(LOG_TAG, "Opening inbox");
+					
+				mFolder = mStore.getInbox();						
+				mFolder.open();
+			
+				NotificationService.setReceivingError(getApplicationContext(), false);
+				
+				// if we can we start waiting for change notifications from
+				// the server. We will stop only when the server the thread is
+				// interrupted
+				if ( mFolder.isWaitingForChangedSupported()) {
+					
+					while (!interrupted()) {
+						
+						mProcessor.processFolder(mFolder);
+						
+						Log.d(LOG_TAG, "Starting waiting for messages");
+						
+						// we get the sync point but we will not save it (we save it only after processing the messages)
+						SynchronizationPoint syncPoint = mStore.createSynchronizationPoint(mAccount.getPushState());
+						mFolder.waitForChanges(syncPoint, mWakeLock);
+				
+						Log.d(LOG_TAG, "Folder has changed, processing new messages");
+						
+					}
+					
+				} else {
+									
+					while (!interrupted()) {
+
+						mProcessor.processFolder(mFolder);
+
+						Log.d(LOG_TAG, "Starting waiting for messages");
+
+						// sleep until the next time we a requested to check emails
+						// while we wait for incoming messages we don't hold the wake lock
+						mWakeLock.release();
+						
+						synchronized (this) {
+							wait();	
+						}
+	
+						mWakeLock.acquire();
+
+						Log.d(LOG_TAG, "Received poll request, checking for new messages");
+					
+					}
+					
+				}
+			
+			} catch (Exception e) {
+				
+				Log.e(LOG_TAG, "Error while polling folder", e);
+				
+				if ( mFolder != null) {
+					try { mFolder.close(); } catch (Exception e2) {}
+					mFolder = null;
+				}
+				
+				if ( !mWakeLock.isHeld()) mWakeLock.acquire();
+				
+				NotificationService.setReceivingError(getApplicationContext(), true);
+										
+			} 
+			
+		}
 		
 		public synchronized void poll() {
 			
