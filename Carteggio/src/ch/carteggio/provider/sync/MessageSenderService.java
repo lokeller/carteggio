@@ -19,7 +19,10 @@ import ch.carteggio.provider.CarteggioAccountImpl;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.app.IntentService;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
@@ -59,6 +62,14 @@ public class MessageSenderService extends IntentService {
 		if ( intent != null && ACTION_SEND.equals(intent.getAction())) {
 
 			mWakeLock.acquire();
+			
+			// don't try to send if there is no connection available
+			ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+			
+			NetworkInfo activeNetwork = connectivityManager.getActiveNetworkInfo();
+			if (activeNetwork == null || !activeNetwork.isConnected()) {
+				return;
+			}
 			
 			try {
 				
