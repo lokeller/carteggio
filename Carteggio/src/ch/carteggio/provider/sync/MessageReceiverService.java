@@ -88,8 +88,7 @@ public class MessageReceiverService extends Service {
 
 	public static final String LOG_TAG = "MessageReceiverService";
 	
-	public static final String ACTION_POLL = "ch.carteggio.provider.sync.MessageReceiverService.ACTION_POLL";	
-	
+	public static final String ACTION_POLL = "ch.carteggio.provider.sync.MessageReceiverService.ACTION_POLL";
 	
 	@Override
 	public void onCreate() {
@@ -141,8 +140,22 @@ public class MessageReceiverService extends Service {
 		return null;
 	}
 	
+	private void updateReceivingErrorState() {
+		
+		boolean failed = false;
+		
+		for ( MessageReceiver acccountReceiver : mAccountReceiver ) {
+			failed = failed || acccountReceiver.mNotConnected;
+		}
+		
+		NotificationService.setReceivingError(this, failed);
+	}
+	
 	private class MessageReceiver extends Thread {
 	
+		// true if not connected to the server
+		private boolean mNotConnected;
+		
 		private CarteggioAccount mAccount;
 		
 		private IncomingMessagesProcessor mProcessor;		
@@ -207,8 +220,10 @@ public class MessageReceiverService extends Service {
 
 				Log.e(getLogTag(), "Error while receiving messages", ex);				
 
-				NotificationService.setReceivingError(getApplicationContext(), true);
-							
+				mNotConnected = true;
+				
+				updateReceivingErrorState();
+				
 			} finally {
 				
 				// release the wake lock if we are still holding it
@@ -238,7 +253,9 @@ public class MessageReceiverService extends Service {
 				mFolder = mStore.getInbox();						
 				mFolder.open();
 			
-				NotificationService.setReceivingError(getApplicationContext(), false);
+				mNotConnected = false;
+				
+				updateReceivingErrorState();
 				
 				// if we can we start waiting for change notifications from
 				// the server. We will stop only when the server the thread is
@@ -295,8 +312,10 @@ public class MessageReceiverService extends Service {
 					mFolder = null;
 				}
 				
-				NotificationService.setReceivingError(getApplicationContext(), true);
-										
+				mNotConnected = true;
+				
+				updateReceivingErrorState();
+					
 			} 
 			
 		}
