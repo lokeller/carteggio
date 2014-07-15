@@ -152,8 +152,6 @@ public class IncomingMessagesProcessor {
 			
 			mHelper.setMessageState(message, Messages.STATE_RECEIVED_BY_DESTINATION);
 		}
-		
-		
 	
 		Folder carteggioFolder = folder.getMessageStore().getPrivateFolder();
 		
@@ -161,6 +159,8 @@ public class IncomingMessagesProcessor {
 							
 		folder.moveMessages(receipts.keySet().toArray(new Message[0]), carteggioFolder);
 		
+
+		NotificationService.notifyNewIncomingMessages(mContext);
 		
 	}
 

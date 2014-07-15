@@ -19,6 +19,9 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.database.ContentObserver;
+import android.media.AudioManager;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -54,6 +57,7 @@ public class NotificationService extends Service {
 	public static final String UPDATE_UNREAD_STATE_ACTION = "ch.carteggio.provider.sync.NotificationService.UPDATE_UNREAD_STATE_ACTION";
 
 	public static final String FAILURE_EXTRA = "ch.carteggio.provider.sync.NotificationService.SUCCESS_EXTRA";
+	private static final String NEW_MESSAGE_EXTRA = "ch.carteggio.provider.sync.NotificationService.NEW_MESSAGE_EXTRA";
 	
 	private Observer mObserver;
 	
@@ -105,7 +109,9 @@ public class NotificationService extends Service {
 				
 			} else if ( UPDATE_UNREAD_STATE_ACTION.equals(intent.getAction())) {
 				
-				updateUnreadNotification();
+				boolean newMessage = intent.getBooleanExtra(NEW_MESSAGE_EXTRA, false);
+				
+				updateUnreadNotification(newMessage);
 				
 			}
 			
@@ -131,7 +137,7 @@ public class NotificationService extends Service {
 		return START_STICKY;
 	}
 
-	private void updateUnreadNotification() {
+	private void updateUnreadNotification(boolean newMessage) {
 
 		NotificationManager mNotificationManager =
 		        (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -155,10 +161,27 @@ public class NotificationService extends Service {
 			    .setSmallIcon(android.R.drawable.stat_notify_chat)
 			    .setContentIntent(intent)
 			    .setContentText(getString(R.string.notification_text_new_messages));
+		
+			if ( newMessage ) {
+				
+				Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+				
+				AudioManager manager = (AudioManager) getSystemService(AUDIO_SERVICE);
+				
+				long pattern [] = { 1000, 500, 2000 };
+				
+				if ( manager.getRingerMode() == AudioManager.RINGER_MODE_NORMAL) {
+					mNotifyBuilder.setSound(uri);
+					mNotifyBuilder.setVibrate(pattern);
+				} else if (manager.getRingerMode() == AudioManager.RINGER_MODE_VIBRATE) {
+					mNotifyBuilder.setVibrate(pattern);
+				}
+			}
 			
 			mNotificationManager.notify(INCOMING_NOTIFICATION_ID, mNotifyBuilder.getNotification());
 
 		}
+		
 		
 		
 	}
@@ -213,6 +236,16 @@ public class NotificationService extends Service {
 	
 	}
 	
+	public static void notifyNewIncomingMessages(Context c) {
+	
+		
+		Intent service = new Intent(c, NotificationService.class);			
+		service.setAction(UPDATE_UNREAD_STATE_ACTION);
+		service.putExtra(NEW_MESSAGE_EXTRA, true);
+		c.startService(service);
+		
+	}
+
 	public static void updateUnreadNotification(Context c) {
 		
 		Intent service = new Intent(c, NotificationService.class);			
