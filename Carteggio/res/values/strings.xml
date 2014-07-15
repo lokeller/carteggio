@@ -42,4 +42,9 @@
     <string name="label_incoming_description">proto is either imap (for standard imap), imap+ssl+ (for imap over ssl) or imap+tls (for imap with STARTTLS).</string>
     <string name="label_outgoing_description">proto can be either smtp (for plain smtp), smtp+tls+ (for STARTTLS with SMTP) or smtp+ssl+ (for SMTP over TLS)</string>    
     <string name="hint_password">Password</string>
+    <string name="notification_text_new_messages">Unread carteggio messages</string>
+    <plurals name="notification_new_incoming_messages">
+        <item quantity="one">One unread message</item>
+        <item quantity="other">%d unread messages</item>
+    </plurals>
 </resources>

@@ -12,23 +12,42 @@
  *******************************************************************************/
 package ch.carteggio.provider.sync;
 
-import ch.carteggio.provider.CarteggioContract.Messages;
-import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.database.ContentObserver;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
+import ch.carteggio.R;
+import ch.carteggio.provider.CarteggioContract;
+import ch.carteggio.provider.CarteggioProviderHelper;
+import ch.carteggio.ui.MainActivity;
 
-public class NotificationService extends IntentService {
+/**
+ * 
+ * This service is responsible to show notifications.
+ * 
+ * Design considerations: the service is very similar to an
+ * IntentService. It however is implemented as an extension
+ * of Service directly because, differently from IntentServices,
+ * we want this service to stay alive to make sure it will be
+ * notified of changes in the list of messages.
+ * 
+ */
 
-	public NotificationService() {
-		super("NotificationService");
-	}
+public class NotificationService extends Service {
 
-	private static final int ERROR_NOTIFICATION_ID = 1;	
+    private volatile Looper mServiceLooper;
+    private volatile ServiceHandler mServiceHandler;
+
+    private static final int ERROR_NOTIFICATION_ID = 1;	
+	private static final int INCOMING_NOTIFICATION_ID = 2;	
 	
 	public static final String UPDATE_SENDING_STATE_ACTION = "ch.carteggio.provider.sync.NotificationService.UPDATE_SENDING_STATE_ACTION";
 	public static final String UPDATE_RECEIVING_STATE_ACTION = "ch.carteggio.provider.sync.NotificationService.UPDATE_RECEIVING_STATE_ACTION";
@@ -50,23 +69,29 @@ public class NotificationService extends IntentService {
 	public void onCreate() {
 		super.onCreate();	
 		
+		HandlerThread thread = new HandlerThread("NotificationService");
+        thread.start();
+		
+        mServiceLooper = thread.getLooper();
+        mServiceHandler = new ServiceHandler(mServiceLooper);
+        
 		mObserver = new Observer();
 		
-		getContentResolver().registerContentObserver(Messages.CONTENT_URI, true, mObserver);
+		getContentResolver().registerContentObserver(CarteggioContract.Messages.CONTENT_URI, true, mObserver);
 		
 	}
 	
 	@Override
 	public void onDestroy() {
-
+		
 		getContentResolver().unregisterContentObserver(mObserver);
+		
+		mServiceLooper.quit();
 		
 		super.onDestroy();
 	}
 
-	@Override
 	protected void onHandleIntent(Intent intent) {
-		
 		
 		if ( intent != null) {
 			
@@ -78,7 +103,11 @@ public class NotificationService extends IntentService {
 				
 				mSendFailure = intent.getBooleanExtra(FAILURE_EXTRA, true);
 				
-			}			
+			} else if ( UPDATE_UNREAD_STATE_ACTION.equals(intent.getAction())) {
+				
+				updateUnreadNotification();
+				
+			}
 			
 		}
 		
@@ -94,10 +123,46 @@ public class NotificationService extends IntentService {
 	public int onStartCommand(Intent intent, int flags, int startId) {		
 		super.onStartCommand(intent, flags, startId);
 		
-		// we want the service to be sticky to make sure we remember the send/receive state
+		Message msg = mServiceHandler.obtainMessage();
+        msg.obj = intent;
+        mServiceHandler.sendMessage(msg);
+		
+		// we want the service to be sticky to make sure we remember the state
 		return START_STICKY;
 	}
 
+	private void updateUnreadNotification() {
+
+		NotificationManager mNotificationManager =
+		        (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+		
+		CarteggioProviderHelper helper = new CarteggioProviderHelper(this);
+		
+		int unreadCount = helper.getUnreadCount();
+		
+		if (unreadCount == 0 ) {
+			
+			mNotificationManager.cancel(INCOMING_NOTIFICATION_ID);
+			
+		} else {
+
+			String quantityString = getResources().getQuantityString(R.plurals.notification_new_incoming_messages, unreadCount);
+			
+			PendingIntent intent = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), Intent.FLAG_ACTIVITY_SINGLE_TOP);
+			
+			Notification.Builder mNotifyBuilder = new Notification.Builder(this)
+			    .setContentTitle(String.format(quantityString, unreadCount))	    
+			    .setSmallIcon(android.R.drawable.stat_notify_chat)
+			    .setContentIntent(intent)
+			    .setContentText(getString(R.string.notification_text_new_messages));
+			
+			mNotificationManager.notify(INCOMING_NOTIFICATION_ID, mNotifyBuilder.getNotification());
+
+		}
+		
+		
+	}
+	
 	private void hideFailureNotification() {
 		
 		NotificationManager mNotificationManager =
@@ -128,26 +193,6 @@ public class NotificationService extends IntentService {
 		
 	}
 
-	private class Observer extends ContentObserver {
-
-		public Observer() {
-			super(new Handler());
-		}
-
-		@Override
-		public void onChange(boolean selfChange) {
-			
-			// we send an intent here because we don't want to do database operations in the main thread
-			Intent service = new Intent(NotificationService.this, NotificationService.class);			
-			service.setAction(UPDATE_UNREAD_STATE_ACTION);
-			
-			startService(service);
-		}
-		
-		
-		
-	}
-
 	public static void setSendingError(Context c, boolean error) {
 		
 		Intent service = new Intent(c, NotificationService.class);			
@@ -165,8 +210,43 @@ public class NotificationService extends IntentService {
 		service.putExtra(FAILURE_EXTRA, error);
 		
 		c.startService(service);
-		
+	
 	}
 	
+	public static void updateUnreadNotification(Context c) {
+		
+		Intent service = new Intent(c, NotificationService.class);			
+		service.setAction(UPDATE_UNREAD_STATE_ACTION);
+		
+		c.startService(service);
+	
+	}
+
+	private final class ServiceHandler extends Handler {
+	    
+		public ServiceHandler(Looper looper) {
+	        super(looper);
+	    }
+	
+	    @Override
+	    public void handleMessage(Message msg) {
+	        onHandleIntent((Intent)msg.obj);
+	    }
+	}
+
+	private class Observer extends ContentObserver {
+	
+		public Observer() {
+			super(new Handler());
+		}
+	
+		@Override
+		public void onChange(boolean selfChange) {
+			
+			// we send an intent here because we don't want to do database operations in the main thread
+			updateUnreadNotification(NotificationService.this);
+		}
+		
+	}
 	
 }

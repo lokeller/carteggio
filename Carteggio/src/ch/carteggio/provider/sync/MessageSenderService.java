@@ -47,11 +47,8 @@ public class MessageSenderService extends IntentService {
 	
 	@Override
 	public void onCreate() {
-
 		super.onCreate();
-		
 		mWakeLock = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MessageReceiverLock");
-		
 	}
 
 	
@@ -75,13 +72,13 @@ public class MessageSenderService extends IntentService {
 				
 				AccountManager manager = AccountManager.get(this);		
 				
+				boolean failures = false;
+				
 				for ( Account account : manager.getAccountsByType(AuthenticatorService.ACCOUNT_TYPE)) {
 					
 					CarteggioAccount carteggioAccount = new CarteggioAccountImpl(this.getApplicationContext(), account);
 					
 					OutgoingMessagesProcessor processor = new OutgoingMessagesProcessor(getApplicationContext(), carteggioAccount);
-				
-					boolean failures = false;
 					
 					try {
 						processor.sendPendingMessages();
@@ -95,14 +92,14 @@ public class MessageSenderService extends IntentService {
 						failures = true;
 					}
 					
-					NotificationService.setSendingError(getApplicationContext(), failures);					
 					
 				}
 			
+				NotificationService.setSendingError(getApplicationContext(), failures);					
+				
+				
 			} finally {
-				
 				mWakeLock.release();
-				
 			}
 					
 		}

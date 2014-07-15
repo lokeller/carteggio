@@ -16,6 +16,7 @@ import android.app.Application;
 import ch.carteggio.net.ImapMessageStore;
 import ch.carteggio.net.NetworkFactories;
 import ch.carteggio.net.SmtpMessageTransport;
+import ch.carteggio.provider.sync.NotificationService;
 
 public class CarteggioApplication extends Application {
 
@@ -27,13 +28,12 @@ public class CarteggioApplication extends Application {
 		NetworkFactories.getInstance(getApplicationContext()).registerStoreFactory("imap+ssl+", new ImapMessageStore.Factory(getApplicationContext()));
 		NetworkFactories.getInstance(getApplicationContext()).registerStoreFactory("imap+tls+", new ImapMessageStore.Factory(getApplicationContext()));
 		
-		
 		NetworkFactories.getInstance(getApplicationContext()).registerTransportFactory("smtp", new SmtpMessageTransport.Factory());
-
 		NetworkFactories.getInstance(getApplicationContext()).registerTransportFactory("smtp+ssl+", new SmtpMessageTransport.Factory());
-
 		NetworkFactories.getInstance(getApplicationContext()).registerTransportFactory("smtp+tls+", new SmtpMessageTransport.Factory());
-				
+		
+		NotificationService.updateUnreadNotification(getApplicationContext());
+		
 	}
 
 	

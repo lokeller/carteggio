@@ -507,6 +507,7 @@ public class CarteggioProvider extends ContentProvider {
                                 
             	changedUris.add(Conversations.CONTENT_URI);
                 changedUris.add(Messages.CONTENT_URI);                                
+                changedUris.add(uri);
                 
                 updateMap.put(Messages.STATE, MessagesColumns.STATE);
                 updateMap.put(Messages.SENDER_ID, MessagesColumns.SENDER_ID);

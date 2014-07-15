@@ -60,7 +60,7 @@ public class SyncService extends Service {
 			receiveIntent.setAction(MessageReceiverService.ACTION_POLL);			
 			startService(receiveIntent);			
 			
-						
+			NotificationService.updateUnreadNotification(SyncService.this);			
 			
 		}
 		

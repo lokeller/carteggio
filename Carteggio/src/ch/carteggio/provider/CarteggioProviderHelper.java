@@ -316,5 +316,23 @@ public class CarteggioProviderHelper {
 		}
 		
 	}
+
+	public int getUnreadCount() {
+		
+		ContentResolver cr = mContext.getContentResolver();
+		
+		Cursor conversationCursor = cr.query(Conversations.CONTENT_URI, new String[] { "SUM(" + Conversations.UNREAD_MESSAGES_COUNT + ")" }, null, null, null);
+		
+		try {
+			
+			conversationCursor.moveToFirst();
+			
+			return conversationCursor.getInt(0);
+			
+		} finally {
+			conversationCursor.close();
+		}
+		
+	}
 	
 }
