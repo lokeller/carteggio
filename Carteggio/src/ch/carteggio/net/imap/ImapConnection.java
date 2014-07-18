@@ -738,7 +738,7 @@ class ImapConnection {
 	    String mPathDelimeter = null;
 	    
 		public boolean useCompression(int type) {		
-			return false;
+			return true;
 		}		
 	   
 	}
