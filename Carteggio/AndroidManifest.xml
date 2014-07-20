@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="ch.carteggio"
-    android:versionCode="1"
-    android:versionName="1.0" >
+    android:versionCode="2"
+    android:versionName="2.0" >
 
     <uses-sdk
         android:minSdkVersion="15"
@@ -54,6 +54,11 @@
             	android:value=".ui.MainActivity" />            
             
         </activity>
+        
+        
+        <activity android:name=".ui.NetworkStatusActivity"
+            		android:label="@string/title_network_status"
+            		android:exported="true"/>
         
         <activity android:name=".ui.EditAccountActivity"
             		android:label="@string/edit_account"

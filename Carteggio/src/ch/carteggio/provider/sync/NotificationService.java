@@ -31,6 +31,7 @@ import ch.carteggio.R;
 import ch.carteggio.provider.CarteggioContract;
 import ch.carteggio.provider.CarteggioProviderHelper;
 import ch.carteggio.ui.MainActivity;
+import ch.carteggio.ui.NetworkStatusActivity;
 
 /**
  * 
@@ -52,21 +53,34 @@ public class NotificationService extends Service {
     private static final int ERROR_NOTIFICATION_ID = 1;	
 	private static final int INCOMING_NOTIFICATION_ID = 2;	
 	
-	public static final String UPDATE_SENDING_STATE_ACTION = "ch.carteggio.provider.sync.NotificationService.UPDATE_SENDING_STATE_ACTION";
-	public static final String UPDATE_RECEIVING_STATE_ACTION = "ch.carteggio.provider.sync.NotificationService.UPDATE_RECEIVING_STATE_ACTION";
-	public static final String UPDATE_UNREAD_STATE_ACTION = "ch.carteggio.provider.sync.NotificationService.UPDATE_UNREAD_STATE_ACTION";
+	private static final String UPDATE_SENDING_STATE_ACTION = "ch.carteggio.provider.sync.NotificationService.UPDATE_SENDING_STATE_ACTION";
+	private static final String UPDATE_RECEIVING_STATE_ACTION = "ch.carteggio.provider.sync.NotificationService.UPDATE_RECEIVING_STATE_ACTION";
+	private static final String UPDATE_UNREAD_STATE_ACTION = "ch.carteggio.provider.sync.NotificationService.UPDATE_UNREAD_STATE_ACTION";
 
-	public static final String FAILURE_EXTRA = "ch.carteggio.provider.sync.NotificationService.SUCCESS_EXTRA";
+	private static final String FAILURE_MESSAGE_EXTRA = "ch.carteggio.provider.sync.NotificationService.FAILURE_MESSAGE_EXTRA";
+	private static final String FAILURE_EXTRA = "ch.carteggio.provider.sync.NotificationService.SUCCESS_EXTRA";
 	private static final String NEW_MESSAGE_EXTRA = "ch.carteggio.provider.sync.NotificationService.NEW_MESSAGE_EXTRA";
+		
+	
+	/**
+	 * 
+	 * An intent with this action is broadcasted to inform the UI that the network state has changed. This allows us
+	 * to update the screen as soon as it changes.
+	 * 
+	 */
+	public static final String NETWORK_STATE_CHANGED_ACTION = "ch.carteggio.provider.sync.NotificationService.NETWORK_STATE_CHANGED_ACTION";
 	
 	private Observer mObserver;
 	
 	private boolean mSendFailure;
 	private boolean mReceiveFailure;
 	
+	private String mSendMessage;
+	private String mReceiveMessage;
+	
 	@Override
 	public IBinder onBind(Intent intent) { 
-		return null;
+		return new Binder();
 	}
 	
 	@Override
@@ -103,9 +117,13 @@ public class NotificationService extends Service {
 				
 				mReceiveFailure = intent.getBooleanExtra(FAILURE_EXTRA, true);
 				
+				mReceiveMessage = intent.getStringExtra(FAILURE_MESSAGE_EXTRA);
+				
 			} else if ( UPDATE_SENDING_STATE_ACTION.equals(intent.getAction())) {				
 				
 				mSendFailure = intent.getBooleanExtra(FAILURE_EXTRA, true);
+				
+				mSendMessage = intent.getStringExtra(FAILURE_MESSAGE_EXTRA);
 				
 			} else if ( UPDATE_UNREAD_STATE_ACTION.equals(intent.getAction())) {
 				
@@ -117,11 +135,16 @@ public class NotificationService extends Service {
 			
 		}
 		
+		// update the notifications
 		if ( mSendFailure || mReceiveFailure) {
 			showFailureNotification();
 		} else {
 			hideFailureNotification();
 		}
+		
+		// inform UI of the changes
+		broadcastNetworkStateChange();
+		
 		
 	}
 
@@ -204,6 +227,10 @@ public class NotificationService extends Service {
 		    .setContentTitle("Carteggio network error")		    
 		    .setSmallIcon(android.R.drawable.stat_notify_error);
 				
+		PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, NetworkStatusActivity.class), 0);
+		
+		mNotifyBuilder.setContentIntent(pendingIntent);
+		
 		if ( mSendFailure && mReceiveFailure) {
 			mNotifyBuilder.setContentText("There was a problem while delivering and receiving messages");
 		} else if ( mSendFailure ) {
@@ -215,22 +242,38 @@ public class NotificationService extends Service {
 		mNotificationManager.notify(ERROR_NOTIFICATION_ID, mNotifyBuilder.getNotification());
 		
 	}
+	
+	private void broadcastNetworkStateChange() {
+		
+		Intent intent = new Intent(NETWORK_STATE_CHANGED_ACTION);
+		
+		sendBroadcast(intent);
+		
+	}
 
-	public static void setSendingError(Context c, boolean error) {
+	public static void setSendingError(Context c, boolean error, String message) {
 		
 		Intent service = new Intent(c, NotificationService.class);			
 		service.setAction(UPDATE_SENDING_STATE_ACTION);
 		service.putExtra(FAILURE_EXTRA, error);
 		
+		if ( error ) {
+			service.putExtra(FAILURE_MESSAGE_EXTRA, message);
+		}
+		
 		c.startService(service);
 		
 	}
 	
-	public static void setReceivingError(Context c, boolean error) {
+	public static void setReceivingError(Context c, boolean error, String message) {
 		
 		Intent service = new Intent(c, NotificationService.class);			
 		service.setAction(UPDATE_RECEIVING_STATE_ACTION);
 		service.putExtra(FAILURE_EXTRA, error);
+		
+		if ( error ) {
+			service.putExtra(FAILURE_MESSAGE_EXTRA, message);
+		}
 		
 		c.startService(service);
 	
@@ -278,6 +321,26 @@ public class NotificationService extends Service {
 			
 			// we send an intent here because we don't want to do database operations in the main thread
 			updateUnreadNotification(NotificationService.this);
+		}
+		
+	}
+	
+	public class Binder extends android.os.Binder {
+		
+		public boolean isOutgoingMessagesFailure() {
+			return mSendFailure;
+		}
+		
+		public boolean isIncomingMessagesFailure() {
+			return mReceiveFailure;
+		}
+		
+		public String getOutgoingMessageError() {
+			return mSendMessage;
+		}
+		
+		public String getIncomingMessageError() {
+			return mReceiveMessage;
 		}
 		
 	}

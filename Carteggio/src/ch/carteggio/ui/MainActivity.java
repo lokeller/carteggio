@@ -163,7 +163,12 @@ public class MainActivity extends Activity {
 				startActivity(new Intent(this, AboutActivity.class));
 				
 				return true;
-		 
+	
+		} else if ( item.getItemId() == R.id.action_network_status) {
+			
+			startActivity(new Intent(this, NetworkStatusActivity.class));
+			
+			return true;
 			
 		} else if ( item.getItemId() == R.id.action_settings) {
 			

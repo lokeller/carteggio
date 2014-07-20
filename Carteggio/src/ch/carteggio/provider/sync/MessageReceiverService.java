@@ -144,17 +144,25 @@ public class MessageReceiverService extends Service {
 		
 		boolean failed = false;
 		
-		for ( MessageReceiver acccountReceiver : mAccountReceiver ) {
-			failed = failed || acccountReceiver.mNotConnected;
+		String message = "";
+		
+		for ( MessageReceiver accountReceiver : mAccountReceiver ) {
+			
+			if ( accountReceiver.mNotConnected) {
+				failed = true;
+				message += ( message.length() == 0 ? "" : ", ") + accountReceiver.mLastErrorMessage;
+			}
 		}
 		
-		NotificationService.setReceivingError(this, failed);
+		NotificationService.setReceivingError(this, failed, message);
 	}
 	
 	private class MessageReceiver extends Thread {
 	
 		// true if not connected to the server
 		private boolean mNotConnected;
+		
+		private String mLastErrorMessage;
 		
 		private CarteggioAccount mAccount;
 		
@@ -222,6 +230,8 @@ public class MessageReceiverService extends Service {
 
 				mNotConnected = true;
 				
+				mLastErrorMessage = ex.getMessage();
+				
 				updateReceivingErrorState();
 				
 			} finally {
@@ -254,6 +264,7 @@ public class MessageReceiverService extends Service {
 				mFolder.open();
 			
 				mNotConnected = false;
+				mLastErrorMessage = null;
 				
 				updateReceivingErrorState();
 				
@@ -311,6 +322,8 @@ public class MessageReceiverService extends Service {
 					try { mFolder.close(); } catch (Exception e2) {}
 					mFolder = null;
 				}
+				
+				mLastErrorMessage = e.getMessage();
 				
 				mNotConnected = true;
 				

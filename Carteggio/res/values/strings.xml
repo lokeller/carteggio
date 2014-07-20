@@ -8,7 +8,9 @@
     <string name="action_search">Search</string>
     <string name="action_add">Add contact</string>
     <string name="action_about">About</string>
+    <string name="action_network_status">Network status</string>
     
+    <string name="title_network_status">Network status</string>
     <string name="title_about">About</string>
     
     <string name="contacts">Contacts</string>
@@ -47,4 +49,11 @@
         <item quantity="one">One unread message</item>
         <item quantity="other">%d unread messages</item>
     </plurals>
+    
+    <string name="label_state_no_errors">No errors detected</string>
+    <string name="label_no_server">No server configured</string>
+    <string name="label_outgoing">Outgoing Messages</string>
+    <string name="label_incoming_messages">Incoming messages</string>
+    
+
 </resources>

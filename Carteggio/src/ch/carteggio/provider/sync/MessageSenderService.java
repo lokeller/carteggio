@@ -74,6 +74,8 @@ public class MessageSenderService extends IntentService {
 				
 				boolean failures = false;
 				
+				String message = "";
+				
 				for ( Account account : manager.getAccountsByType(AuthenticatorService.ACCOUNT_TYPE)) {
 					
 					CarteggioAccount carteggioAccount = new CarteggioAccountImpl(this.getApplicationContext(), account);
@@ -90,12 +92,13 @@ public class MessageSenderService extends IntentService {
 						processor.sendPendingConfirmations();
 					} catch (MessagingException e) {
 						failures = true;
+						message = ( message.length() == 0 ? "" : ", ") + e.getMessage();
 					}
 					
 					
 				}
 			
-				NotificationService.setSendingError(getApplicationContext(), failures);					
+				NotificationService.setSendingError(getApplicationContext(), failures, message);					
 				
 				
 			} finally {
