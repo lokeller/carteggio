@@ -12,18 +12,37 @@
  *******************************************************************************/
 package ch.carteggio;
 
+import org.acra.ACRA;
+import org.acra.ReportField;
+import org.acra.ReportingInteractionMode;
+import org.acra.annotation.ReportsCrashes;
+
 import android.app.Application;
 import ch.carteggio.net.ImapMessageStore;
 import ch.carteggio.net.NetworkFactories;
 import ch.carteggio.net.SmtpMessageTransport;
 import ch.carteggio.provider.sync.NotificationService;
 
+
+@ReportsCrashes(
+        formKey = "", // This is required for backward compatibility but not used
+        mailTo = "info@carteggio.ch",
+        mode =  ReportingInteractionMode.DIALOG,
+        resDialogText = R.string.crash_dialog_text,
+        resToastText = R.string.crash_toast_text,
+        customReportContent = { ReportField.APP_VERSION_CODE, ReportField.APP_VERSION_NAME, ReportField.ANDROID_VERSION, ReportField.PHONE_MODEL, ReportField.CUSTOM_DATA, ReportField.STACK_TRACE, ReportField.LOGCAT }, 
+        logcatArguments = { "-t", "400", "-v", "time"}
+)
 public class CarteggioApplication extends Application {
 
 	@Override
 	public void onCreate() {	
 		super.onCreate();
 				
+		ACRA.init(this);
+
+		ACRA.getErrorReporter().setReportSender(new BugReportSender(this));
+		
 		NetworkFactories.getInstance(getApplicationContext()).registerStoreFactory("imap", new ImapMessageStore.Factory(getApplicationContext()));
 		NetworkFactories.getInstance(getApplicationContext()).registerStoreFactory("imap+ssl+", new ImapMessageStore.Factory(getApplicationContext()));
 		NetworkFactories.getInstance(getApplicationContext()).registerStoreFactory("imap+tls+", new ImapMessageStore.Factory(getApplicationContext()));

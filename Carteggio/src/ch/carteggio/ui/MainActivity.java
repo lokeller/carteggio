@@ -13,6 +13,8 @@
 package ch.carteggio.ui;
 
 
+import org.acra.ACRA;
+
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AccountManagerCallback;
@@ -163,7 +165,13 @@ public class MainActivity extends Activity {
 				startActivity(new Intent(this, AboutActivity.class));
 				
 				return true;
-	
+		
+		} else if ( item.getItemId() == R.id.action_report_bug) {
+			
+			ACRA.getErrorReporter().handleSilentException(null);
+			
+			return true;
+			
 		} else if ( item.getItemId() == R.id.action_network_status) {
 			
 			startActivity(new Intent(this, NetworkStatusActivity.class));

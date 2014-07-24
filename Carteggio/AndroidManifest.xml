@@ -19,6 +19,8 @@
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.READ_LOGS"></uses-permission>
+    
     
     <application
         android:allowBackup="true"
@@ -87,6 +89,13 @@
             
         </activity>
         
+        
+	    <activity android:name="org.acra.CrashReportDialog"
+	        android:theme="@android:style/Theme.Dialog"
+	        android:launchMode="singleInstance"
+	        android:excludeFromRecents="true"
+	        android:finishOnTaskLaunch="true" />
+        
         <service android:name=".provider.AuthenticatorService"
             		android:exported="false">
             
@@ -119,6 +128,19 @@
         <provider android:name=".provider.CarteggioProvider" 
             	android:authorities="ch.carteggio" 
             	android:enabled="true" android:exported="false"/>
+    
+        
+        <!--  this provider is used to securely share files with other apps,
+        		for instance with the mail app when sending bug reports -->
+		<provider
+            android:name="android.support.v4.content.FileProvider"
+            android:authorities="ch.carteggio.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+			       <meta-data
+				        android:name="android.support.FILE_PROVIDER_PATHS"
+				        android:resource="@xml/file_paths" />
+		    </provider>
         
     </application>
 

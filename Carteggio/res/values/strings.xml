@@ -7,11 +7,15 @@
     <string name="action_new_attachment">New attachment</string>
     <string name="action_search">Search</string>
     <string name="action_add">Add contact</string>
+    <string name="action_report_problem">Report problem</string>
     <string name="action_about">About</string>
     <string name="action_network_status">Network status</string>
     
     <string name="title_network_status">Network status</string>
     <string name="title_about">About</string>
+    
+    <string name="crash_dialog_text">There was a unexpected problem in the app. Could you send us a bug report?</string>
+    <string name="crash_toast_text">Ooooops ! Application crashed, collecting information about the crash...</string>
     
     <string name="contacts">Contacts</string>
     <string name="pref_summary_email">The email address from which your messages are sent</string>
@@ -54,6 +58,5 @@
     <string name="label_no_server">No server configured</string>
     <string name="label_outgoing">Outgoing Messages</string>
     <string name="label_incoming_messages">Incoming messages</string>
-    
 
 </resources>
