@@ -550,7 +550,17 @@ public class ImapSession {
 			}
 		};
 		
-		return search(searcher, listener)
+		List<ImapMessage> results = search(searcher, listener);
+		
+		
+		// if there are no new messages the IMAP server will return the latest message
+		// even if it has uid smaller than what we searched (see meaning of * operator
+		// in IMAP specification)
+		if ( results.size() == 1 && results.get(0).getUid() < uid) {
+			results.remove(0);
+		}
+		
+		return results
 				.toArray(ImapStore.EMPTY_MESSAGE_ARRAY);
 	}
 
