@@ -12,6 +12,7 @@
  *******************************************************************************/
 package ch.carteggio.provider;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 
@@ -26,11 +27,13 @@ import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteConstraintException;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.text.TextUtils;
 import android.util.Log;
 import ch.carteggio.provider.CarteggioContract.Contacts;
 import ch.carteggio.provider.CarteggioContract.Conversations;
 import ch.carteggio.provider.CarteggioContract.Messages;
+import ch.carteggio.provider.CarteggioContract.Conversations.Participants;
 
 public class CarteggioProviderHelper {
 	
@@ -331,6 +334,61 @@ public class CarteggioProviderHelper {
 			
 		} finally {
 			conversationCursor.close();
+		}
+		
+	}
+
+	public String[] getParticipantsEmails(long conversationId) {
+		
+		ContentResolver cr = mContext.getContentResolver();
+		
+		Uri conversationUri = ContentUris.withAppendedId(Conversations.CONTENT_URI, 
+															conversationId);
+		
+		Uri participantsUri = Uri.withAppendedPath(conversationUri,
+												Participants.CONTENT_DIRECTORY);
+		
+		Cursor c = cr.query(participantsUri, 
+				new String[] { Participants.EMAIL }, null, null, null);
+		
+		
+		ArrayList<String> emails = new ArrayList<String>();
+		
+		try {
+			
+			int columnIndex = c.getColumnIndex(Participants.EMAIL);
+			
+			while (c.moveToNext()) {
+				emails.add(c.getString(columnIndex));
+			}
+			
+		} finally {
+			c.close();
+		}
+		
+		return emails.toArray(new String[0]);
+		
+	}
+
+	public Uri getContactPhotoUri(String email) {
+
+		ContentResolver cr = mContext.getContentResolver();
+		
+		Uri lookupUri = Uri.withAppendedPath(Email.CONTENT_LOOKUP_URI, Uri.encode(email));
+		
+		Cursor c = cr.query(lookupUri, 
+							new String[] { Email.PHOTO_THUMBNAIL_URI}, 
+							null, null, null);
+		try {
+			
+			if (!c.moveToFirst()) {
+				return null;
+			}
+			
+			return Uri.parse(c.getString(c.getColumnIndex(Email.PHOTO_THUMBNAIL_URI)));
+			
+		} finally {
+			c.close();
 		}
 		
 	}

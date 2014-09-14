@@ -16,7 +16,10 @@ import java.util.Date;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.Color;
+import android.webkit.WebView.FindListener;
 import android.widget.CursorAdapter;
+import android.widget.ImageView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -44,9 +47,12 @@ public class ConversationsAdapter extends CursorAdapter {
 									        Conversations.LAST_MESSAGE_STATE,
 
 									        Conversations.UNREAD_MESSAGES_COUNT} ;
-		
+
+	private ConversationIconLoader mIconLoader;
+	
 	public ConversationsAdapter(Context context, Cursor c) {		
-		super(context, c, FLAG_REGISTER_CONTENT_OBSERVER );				
+		super(context, c, FLAG_REGISTER_CONTENT_OBSERVER );
+		mIconLoader = new ConversationIconLoader(context, Color.RED);				
 	}
 		
 	@Override
@@ -57,34 +63,26 @@ public class ConversationsAdapter extends CursorAdapter {
 		TextView lastMessage = (TextView) viewParent.findViewById(R.id.last_message);
 		TextView unreadCount = (TextView) viewParent.findViewById(R.id.unread_message_count);
 		
+		ImageView chatImage = (ImageView) viewParent.findViewById(R.id.chat_image);
 		
 		int participantsCount = cursor.getInt(cursor.getColumnIndex(Conversations.PARTICIPANTS_COUNT));
 		
 		if ( participantsCount == 1) {
-			
 			subject.setText(cursor.getString(cursor.getColumnIndex(Conversations.PARTICIPANTS_NAMES)));
-			
 		} else {
-			
 			subject.setText(cursor.getString(cursor.getColumnIndex(Conversations.SUBJECT)));
-			
 		}
 	
 				
 		if ( cursor.isNull(cursor.getColumnIndex(Conversations.LAST_MESSAGE_ID)) ) {
-		
 			lastMessageTime.setVisibility(View.GONE);
-			
 		} else {
-			
 			lastMessageTime.setVisibility(View.VISIBLE);
 			lastMessageTime.setText(NiceDateFormat.niceDate(new Date(cursor.getInt(cursor.getColumnIndex(Conversations.LAST_MESSAGE_SENT_DATE)))));
 		}		
 		
 		if ( cursor.isNull(cursor.getColumnIndex(Conversations.LAST_MESSAGE_ID)) ) {
-		
 			lastMessage.setText("No messages");
-			
 		} else {
 			
 			String messageSnippet = cursor.getString(cursor.getColumnIndex(Conversations.LAST_MESSAGE_TEXT)); 
@@ -118,16 +116,14 @@ public class ConversationsAdapter extends CursorAdapter {
 		int count = cursor.getInt(cursor.getColumnIndex(Conversations.UNREAD_MESSAGES_COUNT));
 		
 		if ( count == 0 ) {
-			
 			unreadCount.setVisibility(View.GONE);
-			
 		} else {
-			
 			unreadCount.setVisibility(View.VISIBLE);
-			
 			unreadCount.setText(Long.toString(count));
 		}					
-
+		
+		mIconLoader.loadConversationPicture(cursor.getLong(cursor.getColumnIndex(Conversations._ID)), chatImage);
+		
 	}
 
 
