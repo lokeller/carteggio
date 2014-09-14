@@ -58,5 +58,6 @@
     <string name="label_no_server">No server configured</string>
     <string name="label_outgoing">Outgoing Messages</string>
     <string name="label_incoming_messages">Incoming messages</string>
+    <string name="password_use">Your password will be stored on your phone and used only to access your email server. Carteggio doesn\'t transmit the password to any other server.</string>
 
 </resources>
