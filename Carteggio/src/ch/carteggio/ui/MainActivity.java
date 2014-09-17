@@ -14,6 +14,10 @@ package ch.carteggio.ui;
 
 
 import org.acra.ACRA;
+import org.apache.james.mime4j.dom.address.Mailbox;
+import org.apache.james.mime4j.field.address.AddressBuilder;
+import org.apache.james.mime4j.field.address.LenientAddressBuilder;
+import org.apache.james.mime4j.field.address.ParseException;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
@@ -44,6 +48,7 @@ import android.widget.AbsListView.MultiChoiceModeListener;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Toast;
 import ch.carteggio.provider.AuthenticatorService;
 import ch.carteggio.provider.CarteggioAccount;
 import ch.carteggio.provider.CarteggioProviderHelper;
@@ -344,6 +349,8 @@ public class MainActivity extends Activity {
 	
 	private class CreateConversationTask extends AsyncTask<Uri, Void, Uri> {
 
+		private int mErrorReason;
+		
 		@Override
 		protected Uri doInBackground(Uri... params) {
 			
@@ -354,15 +361,28 @@ public class MainActivity extends Activity {
 			
 			Cursor c = getContentResolver().query(params[0], projection, null, null, null);
 			
-			if (!c.moveToFirst()) return null;
+			if (!c.moveToFirst()) {
+				mErrorReason = R.string.error_contact_not_found;
+				return null;
+			}
+			
+
+			String email = c.getString(c.getColumnIndex(CommonDataKinds.Email.ADDRESS));
+			String displayName = c.getString(c.getColumnIndex(Data.DISPLAY_NAME));
+			long contactId = c.getLong(c.getColumnIndex(Data._ID));
+			
+			// we check that the address can be parsed
+			try {
+				AddressBuilder.DEFAULT.parseMailbox(email);
+			} catch ( ParseException ex) {
+				mErrorReason = R.string.error_email_address_invalid;
+				return null;
+			}
 			
 			CarteggioProviderHelper helper = new CarteggioProviderHelper(MainActivity.this);
-						
 			CarteggioAccount account = helper.getDefaultAccount();
 			
-			Uri contact = helper.createOrUpdateContact(c.getString(c.getColumnIndex(CommonDataKinds.Email.ADDRESS)), 
-													   c.getString(c.getColumnIndex(Data.DISPLAY_NAME)), 
-													   c.getLong(c.getColumnIndex(Data._ID)));
+			Uri contact = helper.createOrUpdateContact(email, displayName, contactId);
 			
 			Uri conversation = helper.createConversation(account, contact);
 						
@@ -372,12 +392,17 @@ public class MainActivity extends Activity {
 		@Override
 		protected void onPostExecute(Uri result) {
 			
-			if ( result == null) return;
+			if ( result == null) {
+				
+				Toast.makeText(MainActivity.this, mErrorReason, Toast.LENGTH_LONG).show();
+				
+			} else {
 			
-			Intent intent = new Intent(Intent.ACTION_VIEW, result);
+				Intent intent = new Intent(Intent.ACTION_VIEW, result);
+				
+				startActivity(intent);
 			
-			startActivity(intent);
-			
+			}
 		}
 		
 		

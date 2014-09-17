@@ -60,4 +60,7 @@
     <string name="label_incoming_messages">Incoming messages</string>
     <string name="password_use">Your password will be stored on your phone and used only to access your email server. Carteggio doesn\'t transmit the password to any other server.</string>
 
+    <string name="error_contact_not_found">Cannot find the contact, please try again.</string>
+    
+    <string name="error_email_address_invalid">The email address of the contact is invalid.</string>
 </resources>
