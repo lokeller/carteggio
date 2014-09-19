@@ -27,6 +27,7 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.SystemClock;
 import ch.carteggio.R;
 import ch.carteggio.provider.CarteggioContract;
 import ch.carteggio.provider.CarteggioProviderHelper;
@@ -61,6 +62,7 @@ public class NotificationService extends Service {
 	private static final String FAILURE_EXTRA = "ch.carteggio.provider.sync.NotificationService.SUCCESS_EXTRA";
 	private static final String NEW_MESSAGE_EXTRA = "ch.carteggio.provider.sync.NotificationService.NEW_MESSAGE_EXTRA";
 		
+	private static final long DISCONNECTION_TIME_THRESHOLD = 30 * 1000;
 	
 	/**
 	 * 
@@ -74,6 +76,9 @@ public class NotificationService extends Service {
 	
 	private boolean mSendFailure;
 	private boolean mReceiveFailure;
+	
+	private long mLastSendSuccessTime;
+	private long mLastReceiveSuccessTime;
 	
 	private String mSendMessage;
 	private String mReceiveMessage;
@@ -119,11 +124,19 @@ public class NotificationService extends Service {
 				
 				mReceiveMessage = intent.getStringExtra(FAILURE_MESSAGE_EXTRA);
 				
+				if (!mReceiveFailure) {
+					mLastReceiveSuccessTime = SystemClock.elapsedRealtime();
+				}
+				
 			} else if ( UPDATE_SENDING_STATE_ACTION.equals(intent.getAction())) {				
 				
 				mSendFailure = intent.getBooleanExtra(FAILURE_EXTRA, true);
 				
 				mSendMessage = intent.getStringExtra(FAILURE_MESSAGE_EXTRA);
+				
+				if (!mSendFailure) {
+					mLastSendSuccessTime = SystemClock.elapsedRealtime();
+				}
 				
 			} else if ( UPDATE_UNREAD_STATE_ACTION.equals(intent.getAction())) {
 				
@@ -136,7 +149,10 @@ public class NotificationService extends Service {
 		}
 		
 		// update the notifications
-		if ( mSendFailure || mReceiveFailure) {
+		if ( (mSendFailure && 
+				SystemClock.elapsedRealtime() - mLastSendSuccessTime > DISCONNECTION_TIME_THRESHOLD) ||
+			 ( mReceiveFailure && 
+				SystemClock.elapsedRealtime() - mLastReceiveSuccessTime > DISCONNECTION_TIME_THRESHOLD)) {
 			showFailureNotification();
 		} else {
 			hideFailureNotification();
