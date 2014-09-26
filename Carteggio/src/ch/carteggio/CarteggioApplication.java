@@ -18,6 +18,7 @@ import org.acra.ReportingInteractionMode;
 import org.acra.annotation.ReportsCrashes;
 
 import android.app.Application;
+import android.os.Handler;
 import ch.carteggio.net.ImapMessageStore;
 import ch.carteggio.net.NetworkFactories;
 import ch.carteggio.net.SmtpMessageTransport;
@@ -41,7 +42,7 @@ public class CarteggioApplication extends Application {
 				
 		ACRA.init(this);
 
-		ACRA.getErrorReporter().setReportSender(new BugReportSender(this));
+		ACRA.getErrorReporter().setReportSender(new BugReportSender(this, new Handler()));
 		
 		NetworkFactories.getInstance(getApplicationContext()).registerStoreFactory("imap", new ImapMessageStore.Factory(getApplicationContext()));
 		NetworkFactories.getInstance(getApplicationContext()).registerStoreFactory("imap+ssl+", new ImapMessageStore.Factory(getApplicationContext()));
