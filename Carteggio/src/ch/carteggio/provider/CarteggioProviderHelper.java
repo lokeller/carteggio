@@ -385,7 +385,13 @@ public class CarteggioProviderHelper {
 				return null;
 			}
 			
-			return Uri.parse(c.getString(c.getColumnIndex(Email.PHOTO_THUMBNAIL_URI)));
+			String photoUri = c.getString(c.getColumnIndex(Email.PHOTO_THUMBNAIL_URI));
+			
+			if (photoUri == null) {
+				return null;
+			}
+			
+			return Uri.parse(photoUri);
 			
 		} finally {
 			c.close();
