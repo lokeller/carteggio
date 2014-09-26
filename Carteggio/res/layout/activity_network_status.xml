@@ -67,7 +67,33 @@
                 android:layout_margin="8dip"
                 android:text="@string/label_state_no_errors"
                 android:textAppearance="?android:attr/textAppearanceSmall" />
+
+            <TextView
+                android:id="@+id/TextView01"
+                style="?android:attr/listSeparatorTextViewStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dip"
+                android:layout_marginTop="8dip"
+                android:text="@string/troubleshooting"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+
+            <Button
+                android:id="@+id/configure_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dip"
+                android:text="@string/button_edit_settings" />
+
+            <Button
+                android:id="@+id/report_problem_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dip"
+                android:text="@string/get_support" />
+
         </LinearLayout>
+
     </ScrollView>
 
     <ProgressBar

@@ -64,4 +64,12 @@
     <string name="error_contact_not_found">Cannot find the contact, please try again.</string>
     
     <string name="error_email_address_invalid">The email address of the contact is invalid.</string>
+    
+    <string name="troubleshooting">Troubleshooting</string>
+    
+    <string name="button_edit_settings">Edit settings</string>
+    
+    <string name="report_problems_to_developers">Report problem to developers</string>
+    
+    <string name="get_support">Get support</string>
 </resources>
