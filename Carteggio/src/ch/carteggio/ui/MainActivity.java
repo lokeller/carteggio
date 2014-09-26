@@ -30,6 +30,7 @@ import android.database.DataSetObserver;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds;
 import android.provider.ContactsContract.CommonDataKinds.Email;
@@ -72,6 +73,15 @@ public class MainActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		
 		super.onCreate(savedInstanceState);
+		
+		if ( !PreferenceManager.getDefaultSharedPreferences(this)
+				.getBoolean(AboutActivity.LICENSE_ACCEPTED, false)) {
+		
+			startActivity(new Intent(this, AboutActivity.class));
+			
+			finish();
+			
+		}
 		
 		if ( new CarteggioProviderHelper(this).getDefaultAccount() == null) {
 			
@@ -191,9 +201,9 @@ public class MainActivity extends Activity {
 			
 		} else if ( item.getItemId() == R.id.action_about) {
 				
-				startActivity(new Intent(this, AboutActivity.class));
-				
-				return true;
+			startActivity(new Intent(this, AboutActivity.class));
+			
+			return true;
 		
 		} else if ( item.getItemId() == R.id.action_report_bug) {
 			

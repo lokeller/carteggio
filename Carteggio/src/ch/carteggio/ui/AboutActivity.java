@@ -21,12 +21,18 @@ import java.io.InputStreamReader;
 
 import ch.carteggio.R;
 import android.app.Activity;
+import android.content.Intent;
+import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.TextView;
 
-public class AboutActivity extends Activity {
+public class AboutActivity extends Activity implements OnClickListener {
 
+	public static final String LICENSE_ACCEPTED = "license_accepted";
 	private static final String LOG_TAG = "AboutActivity";
 
 	@Override
@@ -53,10 +59,35 @@ public class AboutActivity extends Activity {
 			
 		} catch (IOException e) {
 			Log.e(LOG_TAG, "Error while reading license", e);
+		}		
+		
+		if ( PreferenceManager.getDefaultSharedPreferences(this).getBoolean(LICENSE_ACCEPTED, false)) {
+			findViewById(R.id.agree_layout).setVisibility(View.GONE);
+		} else {
+			findViewById(R.id.agree_button).setOnClickListener(this);
+			findViewById(R.id.disagree_button).setOnClickListener(this);
+		}
+	}
+
+	@Override
+	public void onClick(View v) {
+
+		if ( v.getId() == R.id.agree_button) {
+			
+			Editor e = PreferenceManager.getDefaultSharedPreferences(this).edit();
+			
+			e.putBoolean(LICENSE_ACCEPTED, true);
+			
+			e.commit();
+			
+			startActivity(new Intent(this, MainActivity.class));
+			
+			finish();
+			
+		} else if ( v.getId() == R.id.disagree_button) {
+			finish();
 		}
 		
 	}
-
-	
 	
 }

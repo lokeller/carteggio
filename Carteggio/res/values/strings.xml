@@ -65,6 +65,10 @@
     
     <string name="error_email_address_invalid">The email address of the contact is invalid.</string>
     
+    <string name="button_disagree">Disagree</string>
+    
+    <string name="button_agree">Agree</string>
+    
     <string name="troubleshooting">Troubleshooting</string>
     
     <string name="button_edit_settings">Edit settings</string>
