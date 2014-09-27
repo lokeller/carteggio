@@ -14,17 +14,19 @@ package ch.carteggio.ui;
 
 
 import org.acra.ACRA;
-import org.apache.james.mime4j.dom.address.Mailbox;
 import org.apache.james.mime4j.field.address.AddressBuilder;
-import org.apache.james.mime4j.field.address.LenientAddressBuilder;
 import org.apache.james.mime4j.field.address.ParseException;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AccountManagerCallback;
 import android.accounts.AccountManagerFuture;
+import android.app.Activity;
+import android.app.LoaderManager.LoaderCallbacks;
 import android.content.ContentUris;
+import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.Loader;
 import android.database.Cursor;
 import android.database.DataSetObserver;
 import android.net.Uri;
@@ -35,10 +37,6 @@ import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.Data;
-import android.app.Activity;
-import android.app.LoaderManager.LoaderCallbacks;
-import android.content.CursorLoader;
-import android.content.Loader;
 import android.util.SparseBooleanArray;
 import android.view.ActionMode;
 import android.view.Menu;
@@ -50,11 +48,11 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
+import ch.carteggio.R;
 import ch.carteggio.provider.AuthenticatorService;
 import ch.carteggio.provider.CarteggioAccount;
-import ch.carteggio.provider.CarteggioProviderHelper;
 import ch.carteggio.provider.CarteggioContract.Conversations;
-import ch.carteggio.R;
+import ch.carteggio.provider.CarteggioProviderHelper;
 
 public class MainActivity extends Activity {
 		
