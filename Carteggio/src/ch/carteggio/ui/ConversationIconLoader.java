@@ -181,7 +181,12 @@ public class ConversationIconLoader {
 
         Canvas canvas = new Canvas(result);
 
-        int rgb = calcUnknownContactColor(emails[0]);
+        int rgb = CONTACT_DUMMY_COLORS_ARGB[0];
+        
+        if ( emails.length > 0) {
+            calcUnknownContactColor(emails[0]);        	
+        }
+        
         result.eraseColor(rgb);
 
         String letter = FALLBACK_CONTACT_LETTER;
@@ -276,8 +281,12 @@ public class ConversationIconLoader {
         	
         	String [] emails = mHelper.getParticipantsEmails(mConversationId);
         	
+        	if ( emails.length == 0) {
+        		return calculateFallbackBitmap(emails);	
+        	}
+        	
         	if ( emails.length > 1 ) {
-        		calculateFallbackBitmap(emails);
+        		return calculateFallbackBitmap(emails);
         	}
         	
             final String email = emails[0];
