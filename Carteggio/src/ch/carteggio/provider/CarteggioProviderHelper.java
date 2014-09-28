@@ -111,12 +111,12 @@ public class CarteggioProviderHelper {
 	
 	
 	public Uri createConversation(CarteggioAccount account, Uri contact) {
+		return createConversation(account, new Uri[] { contact });
+	}
+	
+	public Uri createConversation(CarteggioAccount account, Uri[] contacts) {
 		
 		ContentResolver cr = mContext.getContentResolver();
-		
-		/* get the contact */
-				
-		long contactId = ContentUris.parseId(contact);
 		
 		/* create the conversation */
 		
@@ -126,13 +126,19 @@ public class CarteggioProviderHelper {
 		
 		Uri conversation = cr.insert(CarteggioContract.Conversations.CONTENT_URI, newConversation);
 		
-		/* add the participant to the conversation */
+		/* add the participants to the conversation */
 		
-		ContentValues participant = new ContentValues();
+		for ( Uri contact : contacts) {
 		
-		participant.put(CarteggioContract.Conversations.Participants._ID, contactId);
-		
-		cr.insert(Uri.withAppendedPath(conversation, CarteggioContract.Conversations.Participants.CONTENT_DIRECTORY), participant);
+			long contactId = ContentUris.parseId(contact);
+			
+			ContentValues participant = new ContentValues();
+			
+			participant.put(CarteggioContract.Conversations.Participants.CONTACT_ID, contactId);
+			
+			cr.insert(Uri.withAppendedPath(conversation, CarteggioContract.Conversations.Participants.CONTENT_DIRECTORY), participant);
+			
+		}
 		
 		return conversation;
 		
@@ -396,6 +402,14 @@ public class CarteggioProviderHelper {
 		} finally {
 			c.close();
 		}
+		
+	}
+
+	public void removeParticipant(Uri mConversation, String email) {
+	
+		Uri contact = getContact(email);
+		
+		
 		
 	}
 	

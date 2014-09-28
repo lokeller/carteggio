@@ -14,535 +14,676 @@ package ch.carteggio.provider;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import android.annotation.SuppressLint;
 import android.content.ContentProvider;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.UriMatcher;
 import android.database.Cursor;
-import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
-import android.text.TextUtils;
 import ch.carteggio.provider.CarteggioContract.Contacts;
 import ch.carteggio.provider.CarteggioContract.Conversations;
+import ch.carteggio.provider.CarteggioContract.Conversations.Participants;
 import ch.carteggio.provider.CarteggioContract.Messages;
-import ch.carteggio.provider.CarteggioDatabaseHelper.ContactsColumns;
-import ch.carteggio.provider.CarteggioDatabaseHelper.ConversationsColumns;
-import ch.carteggio.provider.CarteggioDatabaseHelper.MessagesColumns;
-import ch.carteggio.provider.CarteggioDatabaseHelper.ParticipantsColumns;
-import ch.carteggio.provider.CarteggioDatabaseHelper.Tables;
-import ch.carteggio.provider.CarteggioDatabaseHelper.Views;
 
-@SuppressLint("NewApi")
+/**
+ * 
+ * This class gives access to the sqlite database that stores 
+ * the application data as a {@link ContentProvider}.
+ * 
+ * The provider is used to publish collections of objects, and 
+ * provides methods to add/remove/edit and list these objects.
+ * 
+ * Each collection of objects corresponds to a table. The 
+ * {@link CarteggioProvider} automatically handles updates to any
+ * field of the table and adding/removing objects. The objects
+ * are uniquely identified using the _id column of the table that
+ * must be an integer.
+ * 
+ * When answering a querying {@link CarteggioProvider} doesn't
+ * directly query the table, instead it queries a view. This view
+ * must have all the fields of the table and can additionally
+ * have other computed fields (for instance fields computed using
+ * a join). The same view is used to select objects when performing
+ * deletes or updates.
+ * 
+ * To publish a new type of objects it is sufficient to add a call to
+ * the method {@link #addContentDirectory(Directory)}
+ * in the constructor. Nothing else should require changes in the
+ * class.
+ * 
+ * A collection of objects can be published as top level URI,
+ * in this case accessing the URI will give access to all objects
+ * in the collection. To access the objects it is possible to use
+ * a URL of type content://ch.carteggio/messages, to find a specific
+ * object use the URL content://ch.carteggio/messages/12.
+ * 
+ * A collection can also be published under another collection,
+ * in this case the collection will be filtered so that only a subset
+ * of object linked to the main object will be returned. This is
+ * for instance the case for participants: using the URI 
+ * content://ch.carteggio/conversations/12/participants will list all
+ * the participants that are linked to conversation 12.
+ * 
+ */
+
 public class CarteggioProvider extends ContentProvider {
 	
-    private static final int CONVERSATION_ID_PATH_POSITION = 1;
-    private static final int MESSAGE_ID_PATH_POSITION = 1;
-    private static final int CONTACT_ID_PATH_POSITION = 1;
-    
-	private static final UriMatcher sUriMatcher;
-
-	private static final int CONTACTS = 0;
-	private static final int CONTACT_ID = 1;
-	private static final int CONVERSATIONS = 2;
-	private static final int CONVERSATION_ID = 3;
-	private static final int CONVERSATION_PARTICIPANTS = 4;
-	private static final int MESSAGE_ID = 5;
-	private static final int MESSAGES = 6;
-
     private CarteggioDatabaseHelper mOpenHelper;
-
-    
-    static {
-
-        sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-
-        sUriMatcher.addURI(CarteggioContract.AUTHORITY, Contacts.CONTENT_URI.getPath().substring(1), CONTACTS);
-        sUriMatcher.addURI(CarteggioContract.AUTHORITY, Uri.withAppendedPath(Contacts.CONTENT_URI, "#").getPath().substring(1), CONTACT_ID);
-        
-        sUriMatcher.addURI(CarteggioContract.AUTHORITY, Conversations.CONTENT_URI.getPath().substring(1), CONVERSATIONS);
-        sUriMatcher.addURI(CarteggioContract.AUTHORITY, Uri.withAppendedPath(Conversations.CONTENT_URI, "#").getPath().substring(1), CONVERSATION_ID);
-        sUriMatcher.addURI(CarteggioContract.AUTHORITY, Uri.withAppendedPath(Conversations.CONTENT_URI, "#/" + Conversations.Participants.CONTENT_DIRECTORY).getPath().substring(1), CONVERSATION_PARTICIPANTS);
-        
-        sUriMatcher.addURI(CarteggioContract.AUTHORITY, Messages.CONTENT_URI.getPath().substring(1), MESSAGES);
-        sUriMatcher.addURI(CarteggioContract.AUTHORITY, Uri.withAppendedPath(Messages.CONTENT_URI, "#").getPath().substring(1), MESSAGE_ID);        
-
-    }
-    
-    @Override
-    public boolean onCreate() {
-
-        mOpenHelper = new CarteggioDatabaseHelper(getContext());
-
-        return true;
-    }
-    
-    
-    @Override
-    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
-            String sortOrder) {
-
-        SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-
-        String orderBy = sortOrder;
-        
-        String appendSelection = null;
-        
-        switch (sUriMatcher.match(uri)) {
-        
-        	case CONVERSATIONS:
-        
-        	{
-            	qb.setTables(Views.CONVERSATIONS);
-        
-                if (TextUtils.isEmpty(sortOrder)) {                	                	
-                    orderBy = Conversations.LAST_MESSAGE_SENT_DATE + " DESC";
-                }
-                
-                break;
-        	}
-
-        	case CONVERSATION_ID:
-                
-        	{
-
-            	String conversationId = uri.getPathSegments().get(CONVERSATION_ID_PATH_POSITION);
-               	appendSelection = Conversations._ID + " = " + conversationId;            	
-        		qb.setTables(Views.CONVERSATIONS);            	
-                        
-                break;
-        	}
-
-        	case MESSAGES:
-        
-        	{
-            	qb.setTables(Views.MESSAGES);            
-                
-                break;
-        	}
-
-        	
-        	case MESSAGE_ID:
-                
-        	{
-
-            	String messageId = uri.getPathSegments().get(MESSAGE_ID_PATH_POSITION);
-               	appendSelection = Messages._ID + " = " + messageId;
-        		qb.setTables(Views.MESSAGES);
-                
-                break;
-        	}
-
-        	case CONTACTS:
-                
-        	{
-            	qb.setTables(Views.CONTACTS);            
-                
-                break;
-        	}
-        	
-        	case CONTACT_ID:
-                
-        	{
-
-            	String contactId = uri.getPathSegments().get(CONTACT_ID_PATH_POSITION);
-               	appendSelection = Contacts._ID + " = " + contactId;
-        		qb.setTables(Views.CONTACTS);
-                
-                break;
-        	}        
-            
-            case CONVERSATION_PARTICIPANTS:
-
-            {   
-            	String conversationId = uri.getPathSegments().get(CONVERSATION_ID_PATH_POSITION);
-
-            	appendSelection = Conversations.Participants.CONVERSATION_ID +" = " + conversationId;
-            	
-               	qb.setTables(Views.PARTICIPANTS);
-                
-                break;
-          
-            }   
-            default:
-                throw new IllegalArgumentException("Unknown URI " + uri);
-        }
-
-        if (appendSelection != null) {
-        
-        	if (selection == null) {
-        		selection = appendSelection;
-        	} else {
-        		selection += " AND " + appendSelection;
-        	}
-        }
-        
-        SQLiteDatabase db = mOpenHelper.getReadableDatabase();
-        
-        Cursor c = qb.query(db, projection, selection, selectionArgs, null, null, orderBy);
-        
-        c.setNotificationUri(getContext().getContentResolver(), uri);
-        
-        return c;
-    }
-
-
-	@Override
-	public int delete(Uri uri, String selection, String[] selectionArgs) {
-
-        SQLiteDatabase db = mOpenHelper.getWritableDatabase();        
-
-        int count;
-
-        if (selection != null ) {
-        	throw new IllegalArgumentException("Cannot set selection for delete");            
-        }
-        
-        String finalSelection;
-        Uri collectionUri;
-        
-        switch (sUriMatcher.match(uri)) {
-        	
-        	case CONVERSATION_PARTICIPANTS:        	
-        	case CONVERSATIONS:
-	        case MESSAGES:
 	
-	        	throw new IllegalArgumentException("Cannot delete from this URI");
-        
-	        case MESSAGE_ID:
-	            
-            	String messageID = uri.getPathSegments().get(MESSAGE_ID_PATH_POSITION);
-            	
-            	finalSelection = MessagesColumns.CONCRETE_ID + " = " +  messageID;                
-                
-            	collectionUri = Messages.CONTENT_URI;
-            	
-                break;
-	        	
-            case CONVERSATION_ID:
-        
-            	String conversationID = uri.getPathSegments().get(CONVERSATION_ID_PATH_POSITION);
-            	
-            	finalSelection = ConversationsColumns.CONCRETE_ID + " = " +  conversationID;                
-                
-            	collectionUri = Conversations.CONTENT_URI;
-            	
-                break;
-
-            default:
-                throw new IllegalArgumentException("Unknown URI " + uri);
-        }
-
-        count = db.delete(CarteggioDatabaseHelper.Tables.CONVERSATIONS, finalSelection, selectionArgs);                        
-       
-        getContext().getContentResolver().notifyChange(collectionUri, null);        
-        getContext().getContentResolver().notifyChange(uri, null);
-       
-        return count;
+	private UriMatcher mItemsMatcher = new UriMatcher(UriMatcher.NO_MATCH);
+	private UriMatcher mCollectionsMatcher = new UriMatcher(UriMatcher.NO_MATCH);
+	
+	private ArrayList<Directory> mCallbacks = new ArrayList<Directory>();
+    	
+	@Override
+	public boolean onCreate() {
+	
+	    mOpenHelper = new CarteggioDatabaseHelper(getContext());
+	
+	    addContentDirectory(new Directory(Contacts.CONTENT_URI, 
+	    							Contacts.CONTENT_SUBTYPE, "contacts", "view_contacts"));
+	    
+	    Directory directory = new Directory(Messages.CONTENT_URI, 
+									Messages.CONTENT_SUBTYPE, "messages", "view_messages");
 		
+	    // changes to messages entail changes to conversations due to the SQL triggers
+	    directory.addExtraNotification("conversation_id", Conversations.CONTENT_URI);
+	    
+	    addContentDirectory(directory);
+	
+	    addContentDirectory(new Directory(Conversations.CONTENT_URI, 
+									Conversations.CONTENT_SUBTYPE, "conversations", "view_conversations"));
+	
+	    Uri conversationPath = Uri.withAppendedPath(Conversations.CONTENT_URI, "#");
+	    Uri participantsPath = Uri.withAppendedPath(conversationPath, Participants.CONTENT_DIRECTORY);
+	    
+	    Directory participantsDirectory = new Directory(participantsPath, 
+				Participants.CONTENT_SUBTYPE, "participants", "view_participants", "conversation_id");
+		
+	    // changes to participants entail changes to conversations due to the SQL triggers
+	    directory.addExtraNotification("conversation_id", Conversations.CONTENT_URI);
+	    
+	    addContentDirectory(participantsDirectory);
+	
+	    
+	    return true;
 	}
-
 
 	@Override
 	public String getType(Uri uri) {
-	
-		switch (sUriMatcher.match(uri)) {
-   	
-			case CONVERSATIONS:           
-				return Conversations.CONTENT_TYPE;
-			
-			case CONVERSATION_ID:
-				return Conversations.CONTENT_ITEM_TYPE;
-		
-			case CONVERSATION_PARTICIPANTS:
-				return Conversations.Participants.CONTENT_TYPE;
-								
-			case MESSAGES:
-				return Messages.CONTENT_TYPE;
-				
-			case MESSAGE_ID:
-				return Messages.CONTENT_ITEM_TYPE;				
-	
-			case CONTACTS:
-				return Contacts.CONTENT_TYPE;
-				
-			case CONTACT_ID:
-				return Contacts.CONTENT_ITEM_TYPE;
-		
-			default:
-				throw new IllegalArgumentException("Unknown URI " + uri);
-		}
-		
+
+    	int code;
+    	
+    	if (( code = mCollectionsMatcher.match(uri) ) != UriMatcher.NO_MATCH) {
+    		return mCallbacks.get(code).getDirectoryType();
+    	} else if (( code = mItemsMatcher.match(uri) ) != UriMatcher.NO_MATCH) {
+    		return mCallbacks.get(code).getItemType();
+    	} else {
+    		throw new IllegalArgumentException("Unknown URI " + uri);
+    	}		
 	}
+
+	private void addContentDirectory(Directory provider) {
+		
+		int code = mCallbacks.size();
+		
+		mCallbacks.add(provider);			
 	
+		Uri itemUri = Uri.withAppendedPath(provider.getUri(), "#");
+		
+		mItemsMatcher.addURI(CarteggioContract.AUTHORITY, itemUri.getPath().substring(1), code);
+		mCollectionsMatcher.addURI(CarteggioContract.AUTHORITY, provider.getUri().getPath().substring(1), code);
+	
+	}
+
+	@Override
+    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
+            String sortOrder) {
+    	
+    	int code;
+    	
+    	if (( code = mCollectionsMatcher.match(uri) ) != UriMatcher.NO_MATCH) {
+    	
+    		Directory callback = mCallbacks.get(code);
+    		
+    		List<Long> parent = callback.getParentFromUri(uri);
+    		
+    		Cursor c = mCallbacks.get(code).queryItems(parent, projection, selection, selectionArgs, sortOrder);
+			
+    		c.setNotificationUri(getContext().getContentResolver(), uri);
+    		
+    		return c;
+    	
+    	} else if (( code = mItemsMatcher.match(uri) ) != UriMatcher.NO_MATCH) {
+    
+    		if (selection != null || selectionArgs != null ) {
+            	throw new IllegalArgumentException("Cannot set selection for item query");            
+            }
+    		
+    		Directory callback = mCallbacks.get(code);
+    		
+    		List<Long> index = callback.getIndexFromUri(uri);
+    		
+    		Cursor c = mCallbacks.get(code).queryItem(index, projection);
+			
+    		c.setNotificationUri(getContext().getContentResolver(), uri);
+    		
+    		return c;
+    	
+    	} else {
+    		
+    		throw new IllegalArgumentException("Unknown URI " + uri);
+    		
+    	}
+    	
+    }
+	    
+	@Override
+	public int delete(Uri uri, String selection, String[] selectionArgs) {
+    	
+    	int code;
+    	
+    	if (( code = mCollectionsMatcher.match(uri) ) != UriMatcher.NO_MATCH) {
+    	
+    		Directory callback = mCallbacks.get(code);
+    		
+    		List<Long> parent = callback.getParentFromUri(uri);
+    		
+    		return mCallbacks.get(code).deleteItems(parent, selection, selectionArgs);
+    	
+    	} else if (( code = mItemsMatcher.match(uri) ) != UriMatcher.NO_MATCH) {
+    
+    		if (selection != null || selectionArgs != null ) {
+            	throw new IllegalArgumentException("Cannot set selection for item delete");            
+            }
+    		
+    		Directory callback = mCallbacks.get(code);
+    		
+    		List<Long> index = callback.getIndexFromUri(uri);
+    		
+    		return mCallbacks.get(code).deleteItem(index);
+    	
+    	} else {
+    		
+    		throw new IllegalArgumentException("Unknown URI " + uri);
+    		
+    	}
+    	
+    }
 	
 	@Override
 	public Uri insert(Uri uri, ContentValues initialValues) {
-
-		Map<String, String> insertMap = new HashMap<String, String>();
-		
-		String table;
-		        
-        ArrayList<Uri> additionalUri = new ArrayList<Uri>();        
-				
-		switch (sUriMatcher.match(uri)) {
-			
-			case CONVERSATIONS:
 	
-				insertMap.put(Conversations.SUBJECT, ConversationsColumns.SUBJECT);        
-		         
-				table = Tables.CONVERSATIONS;
-				
-				break;
-
-			case MESSAGES:
-				
-		        insertMap.put(Messages.GLOBAL_ID, Messages.GLOBAL_ID);
-		        insertMap.put(Messages.CONVERSATION_ID, MessagesColumns.CONVERSATION_ID);
-		        insertMap.put(Messages.STATE, MessagesColumns.STATE);
-		        insertMap.put(Messages.SENDER_ID, MessagesColumns.SENDER_ID);
-		        insertMap.put(Messages.SENT_DATE, MessagesColumns.SENT_DATE);
-		        insertMap.put(Messages.TEXT, MessagesColumns.TEXT);
-
-				table = Tables.MESSAGES;
-				
-				additionalUri.add(Conversations.CONTENT_URI);
-				additionalUri.add(ContentUris.withAppendedId(Conversations.CONTENT_URI, 
-						initialValues.getAsLong(Messages.CONVERSATION_ID)));
-				
-				break;
-					
-			case CONTACTS:
-				
-				table = Tables.CONTACTS;
-		        
-				insertMap.put(Contacts.COLOR, ContactsColumns.COLOR);
-		        insertMap.put(Contacts.ANDROID_CONTACT_ID, ContactsColumns.ANDROID_CONTACT_ID);
-		        insertMap.put(Contacts.EMAIL, ContactsColumns.EMAIL);
-		        insertMap.put(Contacts.NAME, ContactsColumns.NAME);		        
-				
-				break;
-			
-			case CONVERSATION_PARTICIPANTS:
-			{	
-				
-				table = Tables.PARTICIPANTS;
-				
-				insertMap.put(Conversations.Participants._ID, ParticipantsColumns.CONTACT_ID);
-				insertMap.put(Conversations.Participants.CONVERSATION_ID, ParticipantsColumns.CONVERSATION_ID);		       
-				
-            	String conversationId = uri.getPathSegments().get(CONVERSATION_ID_PATH_POSITION);            	
-				String contactId = initialValues.getAsString(Conversations.Participants._ID);
-            	
-				initialValues.clear();
-				
-            	initialValues.put(Conversations.Participants.CONVERSATION_ID, conversationId);				
-            	initialValues.put(Conversations.Participants._ID, contactId);            
-				
-				additionalUri.add(Conversations.CONTENT_URI);
-				
-				Uri conversationUri = ContentUris.withAppendedId(Conversations.CONTENT_URI, Long.parseLong(conversationId));				
-				additionalUri.add(conversationUri);
-
-				break;
-			}	
-			
-			default:
-	            throw new IllegalArgumentException("Unknown URI " + uri);
-				
-		}
-			
-		ContentValues values = new ContentValues();
-		
-        for ( Map.Entry<String, Object> entries : initialValues.valueSet()) {        	
-        				
-        	if ( !insertMap.containsKey(entries.getKey()) ) {
-        		throw new IllegalArgumentException("Cannot set initial value " + entries.getKey());
-        	} else {        	
-        		values.put(insertMap.get(entries.getKey()), initialValues.getAsString(entries.getKey()));         		
-        	}
-        	
-        }
-        
-        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
-        
-		long rowId = db.insert( table, null, values);
-
-        if (rowId == 0) {
-        	throw new SQLException("Failed to insert row into " + uri);            
-        }
+		int code;
     	
-        
-	    getContext().getContentResolver().notifyChange(uri, null);
-	    
-        for ( Uri nuri : additionalUri) {        
-        	getContext().getContentResolver().notifyChange(nuri, null);                            
-        }
-        
-        return ContentUris.withAppendedId(uri, rowId);            
+    	if (( code = mCollectionsMatcher.match(uri) ) != UriMatcher.NO_MATCH) {
+    	
+    		Directory callback = mCallbacks.get(code);
+    		
+    		List<Long> parent = callback.getParentFromUri(uri);
+    		
+    		return mCallbacks.get(code).insertItem(parent, initialValues);
+    	
+    	} else if (( code = mItemsMatcher.match(uri) ) != UriMatcher.NO_MATCH) {
+    
+        	throw new IllegalArgumentException("Cannot insert on item URI");            
+    	
+    	} else {
+    		
+    		throw new IllegalArgumentException("Unknown URI " + uri);
+    		
+    	}
 		
 	}
-
 
 	@Override
 	public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
 
-        if (selection != null ) {
-        	throw new IllegalArgumentException("Cannot set selection for update");            
-        }
-		
-        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
-        
-        int count;
-        
-        String table;        
-        String finalSelection;
-        
-        ArrayList<Uri> changedUris = new ArrayList<Uri>();
-        
-        changedUris.add(uri);
-
-        Map<String,String> updateMap = new HashMap<String, String>();
-        
-        switch (sUriMatcher.match(uri)) {
-
-            case CONVERSATION_ID:
-            {
-            	String conversationId = uri.getPathSegments().get(CONVERSATION_ID_PATH_POSITION);
-
-                finalSelection = ConversationsColumns.CONCRETE_ID + " = " +  conversationId;
-
-                table = Tables.CONVERSATIONS;                
-                
-                changedUris.add(Conversations.CONTENT_URI);
-                changedUris.add(uri);
-                
-                updateMap.put(Conversations.SUBJECT, ConversationsColumns.SUBJECT);
-                
-                break;                
-            }   
-
-            case CONTACT_ID:
-            {
-            	String contactId = uri.getPathSegments().get(CONTACT_ID_PATH_POSITION);
-
-                finalSelection = ContactsColumns.CONCRETE_ID + " = " +  contactId;
-
-                table = Tables.CONTACTS;                
-                
-                // look for all messages sent by the contact, we will need to notify they have changed
-                
-                Cursor cursor = db.query(Tables.MESSAGES, new String[] { MessagesColumns._ID},
-						MessagesColumns.CONCRETE_SENDER_ID + " = ? ", new String[] { contactId } , null, null, null);	
-
-				try {
-				
-					while ( cursor.moveToNext()) {
-						changedUris.add(ContentUris.withAppendedId(Messages.CONTENT_URI, 
-								cursor.getLong(cursor.getColumnIndex( MessagesColumns._ID))));		
-					}
-					
-				} finally{
-					cursor.close();
-				}
-
-                // look for all messages sent by the contact, we will need to notify they have changed
-				
-                Cursor cursor2 = db.query(Tables.PARTICIPANTS, new String[] { ParticipantsColumns.CONVERSATION_ID},
-						ParticipantsColumns.CONCRETE_CONTACT_ID + " = ? ", new String[] { contactId } , null, null, null);	
-
-				try {
-				
-					while ( cursor2.moveToNext()) {
-						changedUris.add(ContentUris.withAppendedId(Conversations.CONTENT_URI, 
-								cursor2.getLong(cursor2.getColumnIndex(ParticipantsColumns.CONVERSATION_ID))));		
-					}
-					
-				} finally{
-					cursor.close();
-				}
-				
-                changedUris.add(Conversations.CONTENT_URI);                
-                changedUris.add(Messages.CONTENT_URI);
-                changedUris.add(Contacts.CONTENT_URI);
-                
-                updateMap.put(Contacts.COLOR, ContactsColumns.COLOR);
-                updateMap.put(Contacts.ANDROID_CONTACT_ID, ContactsColumns.ANDROID_CONTACT_ID);
-                updateMap.put(Contacts.EMAIL, ContactsColumns.EMAIL);
-                updateMap.put(Contacts.NAME, ContactsColumns.NAME);
-                
-                break;
+    	int code;
+    	
+    	if (( code = mCollectionsMatcher.match(uri) ) != UriMatcher.NO_MATCH) {
+    	
+    		Directory callback = mCallbacks.get(code);
+    		
+    		List<Long> parent = callback.getParentFromUri(uri);
+    		
+    		return mCallbacks.get(code).updateItems(parent, values, selection, selectionArgs);
+    	
+    	} else if (( code = mItemsMatcher.match(uri) ) != UriMatcher.NO_MATCH) {
+    
+    		if (selection != null || selectionArgs != null ) {
+            	throw new IllegalArgumentException("Cannot set selection for item update");            
             }
+    		
+    		Directory callback = mCallbacks.get(code);
+    		
+    		List<Long> index = callback.getIndexFromUri(uri);
+    		
+    		return mCallbacks.get(code).updateItem(index, values);
+    	
+    	} else {
+    		
+    		throw new IllegalArgumentException("Unknown URI " + uri);
+    		
+    	}
 
-            case MESSAGE_ID:
-            {
-            	String messageId = uri.getPathSegments().get(MESSAGE_ID_PATH_POSITION);
-
-                finalSelection = MessagesColumns.CONCRETE_ID + " = " +  messageId;
-
-                table = Tables.MESSAGES;                
-                
-                changedUris.add(Conversations.CONTENT_URI);
-                
-                Cursor cursor = db.query(Tables.MESSAGES, new String[] { MessagesColumns.CONVERSATION_ID},
-                							MessagesColumns.CONCRETE_ID + " = ? ", new String[] { messageId } , null, null, null);	
-                
-                try {
-                	
-                	if ( !cursor.moveToFirst() ) {
-                		return 0;
-                	}
-                	
-                	long conversationId = cursor.getLong(cursor.getColumnIndex(MessagesColumns.CONVERSATION_ID));
-                	
-                	changedUris.add(ContentUris.withAppendedId(Conversations.CONTENT_URI, conversationId));                    
-                	
-                } finally{
-                	cursor.close();
-                }
-                                
-            	changedUris.add(Conversations.CONTENT_URI);
-                changedUris.add(Messages.CONTENT_URI);                                
-                changedUris.add(uri);
-                
-                updateMap.put(Messages.STATE, MessagesColumns.STATE);
-                updateMap.put(Messages.SENDER_ID, MessagesColumns.SENDER_ID);
-                updateMap.put(Messages.SENT_DATE, MessagesColumns.SENT_DATE);
-                updateMap.put(Messages.TEXT, MessagesColumns.TEXT);                
-                
-                break;
-            }
-            
-            default:
-                throw new IllegalArgumentException("Unknown URI " + uri);
-        }
-        
-		ContentValues mappedValues = new ContentValues();
-		
-        for ( Map.Entry<String, Object> entries : values.valueSet()) {        	
-        				
-        	if ( !updateMap.containsKey(entries.getKey()) ) {
-        		throw new IllegalArgumentException("Cannot set initial value " + entries.getKey());
-        	} else {        	
-        		mappedValues.put(updateMap.get(entries.getKey()), values.getAsString(entries.getKey()));         		
-        	}
-        	
-        }
-
-        count = db.update(table, mappedValues, finalSelection, null);
-                
-        for ( Uri u : changedUris) {
-        	getContext().getContentResolver().notifyChange(u, null);
-        }
-
-        return count;
 		
 	}
-    
-    
+	        
+    private class Directory {
+    	
+    	private Uri mUri;
+    	private String mBackingTable;
+    	private String mView;
+    	private String mPrimaryIndexColumn;
+    	private String mParentIndexesColumns[];    	
+    	private String mSubType;
+    	
+    	private Map<String, Uri> mExtraNotifications = new HashMap<String, Uri>();
+		
+		public Directory(Uri mUri, String mBackingTable,
+				String mView,
+				String mPrimaryIndexColumn, String[] mParentIndexesColumns,
+				String mSubType) {
+			this.mUri = mUri;
+			this.mBackingTable = mBackingTable;
+			this.mView = mView;
+			this.mPrimaryIndexColumn = mPrimaryIndexColumn;
+			this.mParentIndexesColumns = mParentIndexesColumns;
+			this.mSubType = mSubType;
+		}
+
+		public void addExtraNotification(String field, Uri contentUri) {
+			mExtraNotifications.put(field, contentUri);
+		}
+
+		public Directory(Uri mUri, String mSubType, 
+				String mBackingTable, String mView) {
+			this(mUri, mBackingTable, mView, "_id", new String[0], mSubType);
+		}
+
+		public Directory(Uri mUri, String mSubType, 
+				String mBackingTable, String mView, String parentIndex) {
+			this(mUri, mBackingTable, mView, "_id", new String[] { parentIndex }, mSubType);
+		}
+		
+		public String getItemType() {
+			return "vnd.android.cursor.item/" + mSubType;
+		}
+
+		public String getDirectoryType() {
+			return "vnd.android.cursor.dir/" + mSubType;
+		}
+
+		public Uri getUri() {
+    		return mUri;
+    	}
+		
+		private List<Long> getParent(List<Long> id) {
+			List<Long> output = new ArrayList<Long>(id);
+			output.remove(output.size() - 1);
+			return output;
+		}
+		
+		private List<Long> getIndex(List<Long> parent, long id) {
+			List<Long> output = new ArrayList<Long>(parent);
+			output.add(id);
+			return output;
+		}
+
+		private List<Long> getParentFromUri(Uri effective) {
+
+			int effectiveParts = effective.getPathSegments().size();
+			
+			if ( effectiveParts < mUri.getPathSegments().size()) {
+				throw new IllegalArgumentException("Invalid input path ");
+			}
+			
+			ArrayList<Long> index = new ArrayList<Long>();
+			
+			for (int i = 0 ; i < mUri.getPathSegments().size(); i++) {
+				
+				String templatePart = mUri.getPathSegments().get(i);
+				String effectivePart = effective.getPathSegments().get(i);
+				
+				if (templatePart.equals("#")) {
+					index.add(Long.parseLong(effectivePart));
+				} else if ( !templatePart.equals(effectivePart)) {
+					throw new IllegalArgumentException("Invalid input");
+				}
+				
+			}
+		
+			return index;
+			
+		}
+
+		
+		private List<Long> getIndexFromUri(Uri effective) {
+
+			int effectiveParts = effective.getPathSegments().size();
+
+			if ( effectiveParts != mUri.getPathSegments().size() + 1) {
+				throw new IllegalArgumentException("Invalid input path ");
+			}
+			
+			ArrayList<Long> index = (ArrayList<Long>) getParentFromUri(effective);
+		
+			index.add(Long.parseLong(effective.getPathSegments().get(effectiveParts - 1)));
+		
+			return index;
+			
+		}
+    	
+    	private Uri getUriForParent(List<Long> parent) {
+    		
+    		Uri output = Uri.parse(mUri.toString());
+    		
+    		ArrayList<Long> remainingParts = new ArrayList<Long>(parent);
+    		
+    		for (int i = 0 ; i < mUri.getPathSegments().size(); i++) {
+				
+    			String templatePart = mUri.getPathSegments().get(i);
+    			
+				if (templatePart.equals("#")) {
+					output.getPathSegments().set(i, Long.toString(remainingParts.remove(0)));
+				}
+				
+			}
+    		
+    		if (remainingParts.size() > 0) {
+    			throw new IllegalArgumentException("Invalid parent id");
+    		}
+    		
+    		return output;
+		
+    	}
+    	
+    	private Uri getUriForItem(List<Long> index) {
+    		
+    		ArrayList<Long> remainingParts = new ArrayList<Long>(index);
+    		
+    		long itemId = remainingParts.remove(remainingParts.size() - 1);
+		
+    		return ContentUris.withAppendedId(getUriForParent(remainingParts), itemId);
+    		
+    	}
+		
+    	private String buildBaseTableSelection(List<Long> parent, String selection) {
+			String subQuery = SQLiteQueryBuilder.buildQueryString(false, mView, new String[] {mPrimaryIndexColumn},
+            								getSelectionWithParent(parent, selection), null, null, null, null);
+           
+            return mPrimaryIndexColumn + " IN (" + subQuery + ")";
+		}
+    	
+        private String getSelectionWithParent(List<Long> parent, String selection) {
+			
+			StringBuilder output = new StringBuilder();
+        	
+        	for ( int i = 0 ; i < mParentIndexesColumns.length ; i++ ) {
+        		
+        		if ( i != 0 ) output.append(" AND ");
+        		
+        		output.append(mParentIndexesColumns[i]);
+        		output.append(" = ");
+        		output.append(parent.get(i));
+        	}
+        	
+        	
+        	if ( selection != null) {
+	        	if ( parent.size() > 0 ) {
+	        		output.append(" AND (");
+	        		output.append(selection);
+	        		output.append(")");        		
+	        	} else {
+	        		output.append(selection);
+	        	}
+        	}
+        	
+        	return output.toString();
+		}
+
+        private String getSelectionForItem(List<Long> id) {
+			return mPrimaryIndexColumn + " = " + id.get(id.size() - 1);
+		}
+
+		private void notifyAffectedUris(Set<Uri> changedUris) {
+			for ( Uri uri : changedUris ) {
+			    getContext().getContentResolver().notifyChange(uri, null);
+				
+			}
+		}
+
+		private Set<Uri> findAffectedUris(SQLiteDatabase db, String selection, List<Long> parent) {
+			
+			Set<Uri> changedUris = new HashSet<Uri>();
+			
+			Set<String> fieldsSet = new HashSet<String>(mExtraNotifications.keySet());
+			fieldsSet.add(mPrimaryIndexColumn);
+			
+			String[] fields = fieldsSet.toArray(new String[0]);
+			
+			Cursor c = db.query(mView, fields, selection, null, null, null, null, null);
+		
+			// add the uri for our own directory of objects
+			Uri parentUri = getUriForParent(parent);
+			
+			changedUris.add(parentUri);
+			
+			while ( c.moveToNext()) {
+				
+				// add the uri of each object matching the selection
+				long objectId = c.getLong(c.getColumnIndex(mPrimaryIndexColumn));
+				Uri objectUri = ContentUris.withAppendedId(parentUri, objectId);
+				changedUris.add(objectUri);
+				
+				
+				// add each of the other objects linked to this object and their directory
+				for ( Map.Entry<String, Uri> entry : mExtraNotifications.entrySet() ) {
+					
+					changedUris.add(entry.getValue());
+					
+					long extraId = c.getLong(c.getColumnIndex(entry.getKey()));
+					
+					changedUris.add(ContentUris.withAppendedId(entry.getValue(), extraId));
+				}
+				
+			}
+			
+			return changedUris;
+		}
+
+		public Cursor queryItems(List<Long> parent, String[] projection, String selection, String[] selectionArgs,
+		        String sortOrder) {
+			
+			SQLiteDatabase db = mOpenHelper.getReadableDatabase();
+		    
+			String realSelection = getSelectionWithParent(parent, selection);
+		
+			return db.query(mView, projection, realSelection, selectionArgs, null, null, sortOrder);
+			
+		}
+
+		public Cursor queryItem(List<Long> id, String[] projection) {
+        	
+    		SQLiteDatabase db = mOpenHelper.getReadableDatabase();
+            
+            return db.query(mView, projection, getSelectionForItem(id), null, null, null, null);
+                    
+        }
+        
+    	public int deleteItems(List<Long> parent, String selection, String[] selectionArgs)  {
+
+    		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+            String realSelection = buildBaseTableSelection(parent, selection); 
+
+            int count;
+            Set<Uri> changedUris;
+    		
+    		db.beginTransaction();
+    		
+    		try {
+    			
+    			changedUris = findAffectedUris(db, selection, parent);
+    	    
+    			count = db.delete(mBackingTable, realSelection, selectionArgs);
+
+	            db.setTransactionSuccessful();
+	
+			} finally {
+				db.endTransaction();
+			} 
+
+    		if ( count > 0) {
+    			notifyAffectedUris(changedUris);	
+    		}
+    		
+            return count;
+    		
+    	}
+    	
+    	public int deleteItem(List<Long> id)  {
+
+    		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+    		String selection = getSelectionForItem(id);
+    		
+    		int count;
+    		Set<Uri> changedUris;
+    		
+    		db.beginTransaction();
+    		
+    		try {
+    			
+	    		changedUris = findAffectedUris(db, selection, getParent(id));
+	    		
+	            count = db.delete(mBackingTable, selection, null);
+	            
+	            db.setTransactionSuccessful();
+
+    		} finally {
+    			db.endTransaction();
+    		} 
+
+    		
+    		if ( count > 0) {
+    			notifyAffectedUris(changedUris);	
+    		}
+
+            return count;
+
+    	}
+
+		public Uri insertItem(List<Long> parent, ContentValues initialValues)  {
+
+    		ContentValues realValues = new ContentValues(initialValues);
+    		
+    		for (int i = 0 ; i < parent.size() ; i ++) {
+    			realValues.put(mParentIndexesColumns[i], parent.get(i));
+    		}
+    		
+    		Set<Uri> changedUris;
+    		
+            SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+
+    		db.beginTransaction();
+    		
+    		long itemId;
+    		
+    		List<Long> index;
+    		
+    		try {
+            
+	            itemId = db.insert(mBackingTable, mPrimaryIndexColumn, realValues);
+	
+	            index = getIndex(parent, itemId);
+	
+	            String selection = getSelectionForItem(index);
+	    	
+	        	changedUris = findAffectedUris(db, selection, parent);
+	    	   
+	            db.setTransactionSuccessful();
+        	
+			} finally {
+				db.endTransaction();
+			} 
+	
+			if ( itemId > -1 ) {
+				notifyAffectedUris(changedUris);	
+			}
+            
+            return getUriForItem(index);
+
+    	}
+
+    	public int updateItems(List<Long> parent, ContentValues values, String selection, String[] selectionArgs)  {
+    		
+    		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+            String realSelection = buildBaseTableSelection(parent, selection); 
+
+            int count;
+            Set<Uri> changedUris;
+    		
+    		db.beginTransaction();
+    		
+    		try {
+    			
+    			changedUris = findAffectedUris(db, selection, parent);
+    	    
+    			count = db.update(mBackingTable, values, realSelection, selectionArgs);
+
+    			changedUris.addAll(findAffectedUris(db, selection, parent));
+    			
+	            db.setTransactionSuccessful();
+	
+			} finally {
+				db.endTransaction();
+			} 
+
+    		if ( count > 0) {
+    			notifyAffectedUris(changedUris);	
+    		}
+    		
+            return count;
+    		
+    	}
+    	
+    	public int updateItem(List<Long> id, ContentValues values) {
+    		
+    		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+    		String selection = getSelectionForItem(id);
+    		
+    		int count;
+    		Set<Uri> changedUris;
+    		
+    		db.beginTransaction();
+    		
+    		try {
+    			
+    			changedUris = findAffectedUris(db, selection, getParent(id));
+	    			
+    			count = db.update(mBackingTable, values, getSelectionForItem(id), null);
+    		    
+    			db.setTransactionSuccessful();
+
+    		} finally {
+    			db.endTransaction();
+    		} 
+
+    		
+    		if ( count > 0) {
+    			notifyAffectedUris(changedUris);	
+    		}
+
+            return count;
+    	}    	
+    }
+	
 	
 }
