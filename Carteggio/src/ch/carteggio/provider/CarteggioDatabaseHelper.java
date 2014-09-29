@@ -59,56 +59,80 @@ public class CarteggioDatabaseHelper extends SQLiteOpenHelper {
 	  	
 	@Override
 	public void onCreate(SQLiteDatabase db) {
-        onUpgrade(db, 0, DATABASE_VERSION);
+        
+		// we perform creating inside a transaction to avoid leaving
+		// an half created database in case of errors (useful mostly
+		// during development)
+		
+		db.beginTransaction();
+		
+		try {
+			onUpgrade(db, 0, DATABASE_VERSION);
+			
+			db.setTransactionSuccessful();
+			
+		} finally {
+			db.endTransaction();
+		}
 	}
 
 	@Override
 	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
-		for ( int i = oldVersion + 1; i <= newVersion ; i++) {
+		db.beginTransaction();
+		
+		try {
 			
-			String [] statements;
-			
-			try {	
-				statements = mContext.getAssets().list("schema/" + i);
-			} catch (IOException ex) {
-				throw new RuntimeException("Unable to find schema version " + i, ex);
-			}
-			
-			Arrays.sort(statements);
-			
-			for ( String statement : statements) {
-			
-				String fileName = "schema/" + i + "/" + statement;
+			for ( int i = oldVersion + 1; i <= newVersion ; i++) {
 				
-				StringBuilder sql = new StringBuilder();
+				String [] statements;
 				
-				try {
+				try {	
+					statements = mContext.getAssets().list("schema/" + i);
+				} catch (IOException ex) {
+					throw new RuntimeException("Unable to find schema version " + i, ex);
+				}
 				
-					InputStream in = mContext.getAssets().open(fileName);
+				Arrays.sort(statements);
+				
+				for ( String statement : statements) {
+				
+					String fileName = "schema/" + i + "/" + statement;
 					
-					InputStreamReader ir = new InputStreamReader(in);
+					StringBuilder sql = new StringBuilder();
 					
-					char data[] = new char [1000];
-					int read;
+					try {
 					
-					while ((read = ir.read(data)) != -1 ) {
-						sql.append(data, 0, read);
+						InputStream in = mContext.getAssets().open(fileName);
+						
+						InputStreamReader ir = new InputStreamReader(in);
+						
+						char data[] = new char [1000];
+						int read;
+						
+						while ((read = ir.read(data)) != -1 ) {
+							sql.append(data, 0, read);
+						}
+						
+					} catch (IOException e) {
+						throw new RuntimeException("Unable read file " + fileName, e);
 					}
 					
-				} catch (IOException e) {
-					throw new RuntimeException("Unable read file " + fileName, e);
+					try {
+						db.execSQL(sql.toString());
+					} catch (SQLException e) {
+						throw new RuntimeException("Unable read file " + fileName, e);
+					}
+					
 				}
-				
-				try {
-					db.execSQL(sql.toString());
-				} catch (SQLException e) {
-					throw new RuntimeException("Unable read file " + fileName, e);
-				}
-				
+								
 			}
-							
-		}         
+			
+			db.setTransactionSuccessful();
+			
+		} finally {
+			db.endTransaction();
+		}
 		
 	}
 	
