@@ -384,7 +384,9 @@ public class CarteggioProvider extends ContentProvider {
     	
     	private Uri getUriForParent(List<Long> parent) {
     		
-    		Uri output = Uri.parse(mUri.toString());
+    		Uri.Builder output = new Uri.Builder();
+    		output.authority(mUri.getAuthority());
+    		output.scheme(mUri.getScheme());
     		
     		ArrayList<Long> remainingParts = new ArrayList<Long>(parent);
     		
@@ -393,7 +395,9 @@ public class CarteggioProvider extends ContentProvider {
     			String templatePart = mUri.getPathSegments().get(i);
     			
 				if (templatePart.equals("#")) {
-					output.getPathSegments().set(i, Long.toString(remainingParts.remove(0)));
+					output.appendPath(Long.toString(remainingParts.remove(0)));
+				} else {
+					output.appendEncodedPath(templatePart);
 				}
 				
 			}
@@ -402,7 +406,7 @@ public class CarteggioProvider extends ContentProvider {
     			throw new IllegalArgumentException("Invalid parent id");
     		}
     		
-    		return output;
+    		return output.build();
 		
     	}
     	
