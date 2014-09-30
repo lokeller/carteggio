@@ -3,10 +3,17 @@
     <item
         android:id="@+id/action_new_conversation"
         android:orderInCategory="100"
-        android:icon="@drawable/ic_action_chat_add"        
+        android:icon="@drawable/ic_action_add_person"        
         android:showAsAction="always"
         android:title="@string/action_new_conversation"/>
-        
+    
+    <item
+        android:id="@+id/action_new_group"
+        android:orderInCategory="100"
+        android:icon="@drawable/ic_action_add_group"        
+        android:showAsAction="always"
+        android:title="@string/action_new_group"/>
+    
     <item
         android:id="@+id/action_add_contact"
         android:orderInCategory="100" 

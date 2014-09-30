@@ -10,6 +10,8 @@
     <string name="action_report_problem">Report problem</string>
     <string name="action_about">About</string>
     <string name="action_network_status">Network status</string>
+    <string name="action_new_group">Add group</string>
+    
     
     <string name="title_network_status">Network status</string>
     <string name="title_about">About</string>
@@ -76,4 +78,14 @@
     <string name="report_problems_to_developers">Report problem to developers</string>
     
     <string name="get_support">Get support</string>
+    
+    <string name="conversation_topic">Topic</string>
+    
+    <string name="conversation_topic_hint">Type the topic of the group</string>
+    
+    <string name="conversation_participants">Participants</string>
+
+    <string name="title_edit_conversation">Edit conversation</string>
+    
+    
 </resources>

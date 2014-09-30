@@ -241,6 +241,10 @@ public class MainActivity extends Activity {
 				
 			}
 			
+		} else if ( item.getItemId() == R.id.action_new_group) {
+			
+			new CreateGroupConversationTask().execute();
+		
 		}
 		
 		return super.onOptionsItemSelected(item);		
@@ -420,6 +424,32 @@ public class MainActivity extends Activity {
 				startActivity(intent);
 			
 			}
+		}
+		
+		
+		
+	}
+
+	private class CreateGroupConversationTask extends AsyncTask<Void, Void, Uri> {
+
+		@Override
+		protected Uri doInBackground(Void... params) {
+			
+			CarteggioProviderHelper helper = new CarteggioProviderHelper(MainActivity.this);
+			CarteggioAccount account = helper.getDefaultAccount();
+			
+			Uri conversation = helper.createConversation(account, new Uri[0]);
+						
+			return conversation;
+		}
+
+		@Override
+		protected void onPostExecute(Uri result) {
+						
+			Intent intent = new Intent(Intent.ACTION_EDIT, result);
+			
+			startActivity(intent);
+			
 		}
 		
 		

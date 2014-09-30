@@ -63,6 +63,18 @@
         <activity android:name=".ui.AboutActivity"
             		android:label="@string/title_about"/>
         
+        <activity android:name=".ui.EditConversationActivity"
+            		android:label="@string/title_edit_conversation">
+        	
+        	<intent-filter>
+        	    <category android:name="android.intent.category.DEFAULT"/>
+    			<category android:name="android.intent.category.BROWSABLE"/>        	    
+        		<action android:name="android.intent.action.EDIT"/>
+        		<data android:mimeType="vnd.android.cursor.item/vnd.ch.carteggio.conversation"/>
+        	</intent-filter>
+        	            
+       	</activity>
+        
         <activity android:name=".ui.ConversationActivity" 
            android:parentActivityName=".ui.MainActivity">
             
