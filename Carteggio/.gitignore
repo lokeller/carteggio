@@ -3,3 +3,5 @@
 .settings
 local.properties
 /ant_bin/
+.ant-targets-build.xml
+build.properties
