@@ -79,6 +79,7 @@ public class MainActivity extends Activity {
 			
 			finish();
 			
+			return;
 		}
 		
 		if ( new CarteggioProviderHelper(this).getDefaultAccount() == null) {
