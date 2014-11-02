@@ -15,26 +15,45 @@
 
 package ch.carteggio.uitests;
 
-import com.android.uiautomator.core.UiDevice;
+import org.junit.Test;
 
-public class InitialSetup extends CarteggioTestCase {
+import ch.carteggio.uitests.utils.SinglePhoneTestCase;
 
-	protected void setUp() throws Exception {
-		super.setUp();
+public class EulaTest extends SinglePhoneTestCase {
 
-		createEmulator("first");
+	@Test
+	public void testRefuseEULA() throws Exception {
 
+		mUseCases.startApplication();
+		
+		mUseCases.refuseEULA();
+
+		// we re-start the application to check that the eula is going to be
+		// displayed again
+		mUseCases.startApplication();
+		
+		mUseCases.getState().onAboutActivityWithEULA();
 	}
-
+	
+	@Test
 	public void testAcceptEULA() throws Exception {
 
-		goToCarteggioApp(getEmulatorController("first"));
+		mUseCases.startApplication();
 		
-		UiDevice uiDevice = getUiDevice("first");
+		mUseCases.acceptEULA();
+		
+		// go back to launcher
+		mDevice.pressHome();
+		mDevice.waitForIdle();
 
-		uiDevice.waitForWindowUpdate("ch.carteggio", 10000);
+		mUseCases.getState().onLauncher();
 		
+		// restart app and check that we are not asked again to accept the EULA
+		mUseCases.startApplication();
 		
-	}
+		mUseCases.getState().onNewAccountActivity();
+		
+	}	
+	
 
 }

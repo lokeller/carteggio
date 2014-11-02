@@ -1,0 +1,7 @@
+ANDROID_SDK=path to android sdk
+app.apk=path to the apk of the carteggio app
+account1.displayname=first and last name of the first account
+account1.email=email of the first account
+account1.password=password of the first account
+account1.incomingserver=url of the incoming server for the first account
+account1.outgoingserver=url of the outgoing server for the first account
