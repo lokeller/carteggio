@@ -203,6 +203,14 @@ public class MainActivity extends Activity {
 			startActivity(new Intent(this, AboutActivity.class));
 			
 			return true;
+		} else if ( item.getItemId() == R.id.action_add_contact) {
+			
+			Intent intent = new Intent(Intent.ACTION_INSERT);
+			intent.setType(ContactsContract.Contacts.CONTENT_TYPE);
+			
+			startActivity(intent);
+			
+			return true;
 		
 		} else if ( item.getItemId() == R.id.action_report_bug) {
 			
