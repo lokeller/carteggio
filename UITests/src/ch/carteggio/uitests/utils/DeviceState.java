@@ -60,5 +60,16 @@ public class DeviceState {
 		UiObject actionBar = new UiObject(mDevice, new UiSelector().text("Edit account"));
 		assertTrue("Not on edit account activity", actionBar.exists());
 	}
+
+	public void onConversationActivity(String name) {
+		UiObject outgoingMessage = new UiObject(mDevice, new UiSelector().resourceId("ch.carteggio:id/outgoingMessage"));
+		assertTrue("Not on the conversation activity", outgoingMessage.exists());
+		
+		if ( name != null ) {
+			UiObject actionBar = new UiObject(mDevice, new UiSelector().text(name));
+			assertTrue("Not on the correct conversation", actionBar.exists());
+		}
+			
+	}
 	
 }

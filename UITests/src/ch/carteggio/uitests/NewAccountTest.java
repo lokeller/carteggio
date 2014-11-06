@@ -1,5 +1,6 @@
 package ch.carteggio.uitests;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import ch.carteggio.uitests.utils.SinglePhoneTestCase;
@@ -8,14 +9,18 @@ import static org.junit.Assert.*;
 
 public class NewAccountTest extends SinglePhoneTestCase {
 
-	@Test
-	public void testGMailAccount() throws Exception {
-		
+	@Before
+	public void setUp() throws Exception {
+
 		mUseCases.startApplication();
 		
 		mUseCases.acceptEULA();
 		
-		assertTrue("account1 must be a gmail account", System.getProperty("account1.email").endsWith("gmail.com"));
+	}
+	
+	
+	@Test
+	public void testAutoSetupAccount() throws Exception {
 		
 		mUseCases.enterNewEmailAccount(System.getProperty("account1.displayname"),
 										System.getProperty("account1.email"), 
@@ -27,11 +32,7 @@ public class NewAccountTest extends SinglePhoneTestCase {
 	
 	@Test
 	public void testManualAccount() throws Exception {
-		
-		mUseCases.startApplication();
-		
-		mUseCases.acceptEULA();
-		
+				
 		mUseCases.enterNewEmailAccount(System.getProperty("account1.displayname"),
 										System.getProperty("account1.email"), 
 										System.getProperty("account1.password"), false);

@@ -96,6 +96,43 @@ public class UseCases {
 		
 	}
 
+	public void addContact(String name, String email ) throws Exception {
+		
+		mDeviceState.onMainActivity();
+		
+		// open the menu
+		UiObject moreOptions = new UiObject(mDevice, new UiSelector().description("More options"));
+		moreOptions.click();
+		mDevice.waitForIdle();
+		
+		// click on add contact
+		UiObject addContact = new UiObject(mDevice, new UiSelector().text("Add contact"));
+		addContact.clickAndWaitForNewWindow();
+		
+		// insert the name
+		UiObject nameEdit = new UiObject(mDevice, new UiSelector().text("Name").className("android.widget.EditText"));
+		nameEdit.setText(name);
+		
+		// hide the keyboard
+		mDevice.pressBack();
+		mDevice.waitForIdle();
+		
+		// insert the email
+		UiObject emailEdit = new UiObject(mDevice, new UiSelector().text("Email").className("android.widget.EditText"));
+		emailEdit.setText(email);
+		
+		// save the contact
+		UiObject doneButton = new UiObject(mDevice, new UiSelector().text("Done"));
+		doneButton.clickAndWaitForNewWindow();
+		
+		// go back to main activity
+		mDevice.pressBack();
+		mDevice.waitForIdle();
+		
+		mDeviceState.onMainActivity();
+		
+	}
+	
 	
 	public void editAccount(String displayName, String incomingServer, String outgoingServer, String incomingPassword, String outgoingPassword) throws Exception {
 	
@@ -146,6 +183,37 @@ public class UseCases {
 		
 	}	
 
+	public void createConversation(String displayName, String email, boolean actionBar) throws Exception {
+		mDeviceState.onMainActivity();
+
+		// click one of the buttons to start a conversation
+		if ( actionBar) {
+			
+			UiObject addConversationActionButton = new UiObject(mDevice, new UiSelector().text("New conversation").className("android.widget.TextView"));
+			addConversationActionButton.clickAndWaitForNewWindow();
+			
+		} else {
+			
+			// this button is visible only when there are no other conversations
+			UiObject addConversationButton = findViewById("start_first_conversation");
+			assertTrue("Add Conversation button not visible", addConversationButton.exists());
+			addConversationButton.clickAndWaitForNewWindow();
+		
+		}
+		
+		// pick the desired contact
+		
+		UiScrollable contactList = new UiScrollable(mDevice, new UiSelector().className("android.widget.ListView"));
+		UiObject contactEmail = new UiObject(mDevice, new UiSelector().text(email));
+		contactList.scrollIntoView(contactEmail);
+		contactEmail.clickAndWaitForNewWindow();
+
+		// we need to wait that we are on the conversation window (the contact picker brings us briefly back to the main window)
+		mDevice.waitForIdle();
+		
+		mDeviceState.onConversationActivity(displayName);
+	}
+	
 	
 	/** 
 	 * 
@@ -160,8 +228,12 @@ public class UseCases {
 		
 		editBox.clickTopLeft();
 		
-		// while there is text inside the box (and is not an hint)
-		while ( editBox.getText() != "") {			
+		// the method below works with text fields with hints (getText is always
+		// different than "") and password text fields (where getText is always
+		// equal to ""
+		
+		// keep deleting until we get out of the field by pressing right arrow
+		while ( true ) {			
 			mDevice.pressDPadRight();
 			
 			// this is used to detect when the only 
