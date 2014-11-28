@@ -79,6 +79,7 @@ public class MainActivity extends Activity {
 			
 			finish();
 			
+			return;
 		}
 		
 		if ( new CarteggioProviderHelper(this).getDefaultAccount() == null) {
@@ -200,6 +201,14 @@ public class MainActivity extends Activity {
 		} else if ( item.getItemId() == R.id.action_about) {
 				
 			startActivity(new Intent(this, AboutActivity.class));
+			
+			return true;
+		} else if ( item.getItemId() == R.id.action_add_contact) {
+			
+			Intent intent = new Intent(Intent.ACTION_INSERT);
+			intent.setType(ContactsContract.Contacts.CONTENT_TYPE);
+			
+			startActivity(intent);
 			
 			return true;
 		
