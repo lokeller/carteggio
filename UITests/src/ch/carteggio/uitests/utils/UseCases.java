@@ -188,21 +188,16 @@ public class UseCases {
 
 		// click one of the buttons to start a conversation
 		if ( actionBar) {
-			
 			UiObject addConversationActionButton = new UiObject(mDevice, new UiSelector().text("New conversation").className("android.widget.TextView"));
 			addConversationActionButton.clickAndWaitForNewWindow();
-			
 		} else {
-			
 			// this button is visible only when there are no other conversations
 			UiObject addConversationButton = findViewById("start_first_conversation");
 			assertTrue("Add Conversation button not visible", addConversationButton.exists());
 			addConversationButton.clickAndWaitForNewWindow();
-		
 		}
 		
 		// pick the desired contact
-		
 		UiScrollable contactList = new UiScrollable(mDevice, new UiSelector().className("android.widget.ListView"));
 		UiObject contactEmail = new UiObject(mDevice, new UiSelector().text(email));
 		contactList.scrollIntoView(contactEmail);
@@ -212,6 +207,22 @@ public class UseCases {
 		mDevice.waitForIdle();
 		
 		mDeviceState.onConversationActivity(displayName);
+	}
+	
+	public void sendMessage(String message) throws Exception {
+		
+		mDeviceState.onConversationActivity(null);
+		
+		UiObject outgoingMessage = findViewById("outgoingMessage");
+		outgoingMessage.setText(message);
+		
+		UiObject sendButton = findViewById("send");
+		sendButton.click();
+		
+		mDevice.waitForIdle();
+		
+		assertTrue("Sent message not listed in conversation", new UiObject(mDevice, new UiSelector().text(message)).exists());
+		
 	}
 	
 	

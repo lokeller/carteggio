@@ -1,6 +1,9 @@
 package ch.carteggio.uitests;
 
 
+import org.junit.Before;
+import org.junit.Test;
+
 import ch.carteggio.uitests.utils.CarteggioTestCase;
 import ch.carteggio.uitests.utils.UseCases;
 
@@ -18,7 +21,10 @@ public class MessagingTest extends CarteggioTestCase {
 		
 		for ( int i = 0 ; i < count; i++) {
 			mDevice[i] = setupEmulator("tester" + i);
+			
 			mUseCases[i] = new UseCases(mDevice[i]);
+			
+			mUseCases[i].startApplication();
 			
 			mUseCases[i].acceptEULA();
 			
@@ -32,9 +38,23 @@ public class MessagingTest extends CarteggioTestCase {
 		}
 		
 	}
-	
-	
-	
+
+	@Before
+	public void setUp() throws Exception {
+		createEmulators(2);
+	}
+
+	@Test
+	public void testSendMessage() throws Exception {
+		mUseCases[0].addContact(System.getProperty("account2.displayname"), System.getProperty("account2.email"));
+		mUseCases[0].createConversation(System.getProperty("account2.displayname"), System.getProperty("account2.email"), false);
+		mUseCases[0].sendMessage("Test message 1");
+		
+		
+		
+	}
+
+
 	
 	
 }

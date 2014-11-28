@@ -30,8 +30,14 @@ public class MainActivityTest extends SinglePhoneTestCase {
 	public void testCreateConversation() throws Exception {
 		mUseCases.addContact(System.getProperty("account2.displayname"), System.getProperty("account2.email"));
 		mUseCases.createConversation(System.getProperty("account2.displayname"), System.getProperty("account2.email"), false);
-		
-		
 	}
+
+	@Test
+	public void testSendMessage() throws Exception {
+		mUseCases.addContact(System.getProperty("account2.displayname"), System.getProperty("account2.email"));
+		mUseCases.createConversation(System.getProperty("account2.displayname"), System.getProperty("account2.email"), false);
+		mUseCases.sendMessage("Test message 1");
+	}
+
 	
 }

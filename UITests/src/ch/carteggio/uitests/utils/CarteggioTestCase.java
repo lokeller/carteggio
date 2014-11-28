@@ -34,19 +34,28 @@ public class CarteggioTestCase extends UiAutomatorTestCase {
 		
 	}
 	
-	protected UiDevice setupEmulator(String name) {
+	protected UiDevice setupEmulator(String name) throws Exception {
 		
 		
 		EmulatorController controller = getEmulatorController(name);
 		
+		// clear all contacts 
+		controller.executeCommand("pm clear com.android.providers.contacts");
+				
+		// remove previous install
 		controller.uninstallApplication("ch.carteggio");
 		
+		// reinstall app
 		String appPath = System.getProperty("app.apk");
 		
 		assertNotNull("APP_APK property must point to Carteggio APK",
 							System.getProperty("app.apk"));
 		
 		controller.installApplication(appPath);
+		
+		// we need to wait a bit more here because the emulator can take some time
+		// before locking
+		Thread.sleep(5000);
 		
 		UiDevice device = controller.getUiDevice();
 		
