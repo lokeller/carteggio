@@ -109,26 +109,38 @@ public class UseCases {
 		UiObject addContact = new UiObject(mDevice, new UiSelector().text("Add contact"));
 		addContact.clickAndWaitForNewWindow();
 		
+		// if the keep local windows shows up press the button keep local
+		UiObject keepLocal = new UiObject(mDevice, new UiSelector().text("Keep local"));
+		
+		if (keepLocal.exists()) {
+			keepLocal.clickAndWaitForNewWindow();
+		}
+		
 		// insert the name
 		UiObject nameEdit = new UiObject(mDevice, new UiSelector().text("Name").className("android.widget.EditText"));
 		nameEdit.setText(name);
 		
-		// hide the keyboard
-		mDevice.pressBack();
-		mDevice.waitForIdle();
-		
+		UiScrollable scrollable = new UiScrollable(mDevice, new UiSelector().resourceId("com.android.contacts:id/contact_editor_fragment"));
+								
 		// insert the email
 		UiObject emailEdit = new UiObject(mDevice, new UiSelector().text("Email").className("android.widget.EditText"));
+		
+		scrollable.scrollIntoView(emailEdit);
+		
 		emailEdit.setText(email);
 		
 		// save the contact
 		UiObject doneButton = new UiObject(mDevice, new UiSelector().text("Done"));
 		doneButton.clickAndWaitForNewWindow();
 		
+		// wait for the Contact view window
+		UiObject addToFavorites = new UiObject(mDevice, new UiSelector().text("Add to favorites"));
+		addToFavorites.waitForExists(10000);		
+		
 		// go back to main activity
 		mDevice.pressBack();
 		mDevice.waitForIdle();
-		
+						
 		mDeviceState.onMainActivity();
 		
 	}
