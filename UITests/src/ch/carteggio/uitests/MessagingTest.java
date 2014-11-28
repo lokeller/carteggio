@@ -28,9 +28,9 @@ public class MessagingTest extends CarteggioTestCase {
 			
 			mUseCases[i].acceptEULA();
 			
-			mUseCases[i].enterNewEmailAccount(System.getProperty("account" + i + ".displayname"),
-												System.getProperty("account" + i + ".email"), 
-												System.getProperty("account" + i + ".password"), 
+			mUseCases[i].enterNewEmailAccount(System.getProperty("account" + (i+1) + ".displayname"),
+												System.getProperty("account" + (i+1) + ".email"), 
+												System.getProperty("account" + (i+1) + ".password"), 
 												true);
 
 			
