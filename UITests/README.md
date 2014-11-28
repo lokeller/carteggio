@@ -23,7 +23,13 @@ How to execute tests
 ---------------------
 
 0. Build the Carteggio App with ant (see main README)
-1. First you need to import this directory as an eclipse project (File -> Import -> General -> Existing Project )
-2. Then you need to copy the file test.properties.default to test.properties and set the values inside
-3. Finally you can run any of the tests from eclipse by doing right-click and on the test ( Run as -> Junit Test )
-   When asked choose to run the tests as normal Junit tests (not android ones).
+
+1. First you need to import this directory as an eclipse project 
+   (File -> Import -> General -> Existing Project )
+
+2. Then you need to copy the file test.properties.default to 
+   test.properties and set the values inside
+
+3. Finally you can run any of the tests from eclipse by doing 
+   right-click and on the test 
+   ( Run as -> Junit Test -> Eclipse JUnit Launcher )
