@@ -24,6 +24,7 @@ import android.widget.CursorAdapter;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,7 +39,7 @@ public class ConversationActivity extends Activity {
 	protected static final String CONVERSATION_ID_EXTRA = "ch.carteggio.ConversationActivity.MESSAGE_ID_EXTRA";
 
 	private ListView mMessagesList;
-	private CursorAdapter mAdapter;
+	private MessagesAdapter mAdapter;
 	
 	private Uri mConversation;
 		
@@ -160,6 +161,21 @@ public class ConversationActivity extends Activity {
 				
 				message.setText("");
 			}
+		});
+		
+		mMessagesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+			@Override
+			public void onItemClick(AdapterView<?> parent, View view,
+					int position, long id) {
+				
+				if ( mAdapter == null ) return;
+				
+				mAdapter.toggleExpanded(id);
+				
+			}
+			
+
 		});
 		
 		getLoaderManager().initLoader(LOADER_CONVERSATION, null, mConversationLoader);
