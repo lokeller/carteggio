@@ -77,7 +77,8 @@ public class OutgoingMessagesProcessor {
 			while (c.moveToNext()) {
 
 				long messageId = c.getLong(c.getColumnIndex(Messages._ID));
-				long conversationId = c.getLong(c.getColumnIndex(Messages.CONVERSATION_ID));				
+				long conversationId = c.getLong(c.getColumnIndex(Messages.CONVERSATION_ID));
+				Date messageDate = new Date(c.getLong(c.getColumnIndex(Messages.SENT_DATE)));
 				
 				Uri conversationUri = ContentUris.withAppendedId(Conversations.CONTENT_URI, conversationId);
 				
@@ -96,6 +97,7 @@ public class OutgoingMessagesProcessor {
 					Log.d(LOG_TAG, "Sending confirmation");
 					
 					ConfirmationReceipt receipt = new ConfirmationReceipt.Builder().setFrom(senderMailbox)
+							   .setDate(messageDate)
 							   .setDestinations(destinationMailboxes)
 							   .setSubject(messageSubject)
 							   .setMessageId(messageGlobalId)

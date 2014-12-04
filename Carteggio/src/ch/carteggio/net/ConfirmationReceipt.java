@@ -12,6 +12,7 @@
  *******************************************************************************/
 package ch.carteggio.net;
 
+import java.util.Date;
 import java.util.HashMap;
 
 import org.apache.james.mime4j.dom.Header;
@@ -31,11 +32,17 @@ import org.apache.james.mime4j.util.MimeUtil;
 
 public class ConfirmationReceipt extends CarteggioMessage {
 
+	private Date mDate;
 	
 	public static class Builder extends CarteggioMessage.Builder<Builder, ConfirmationReceipt> {
 		
 		public Builder() {
 			mMessage = new ConfirmationReceipt();
+		}
+		
+		public Builder setDate(Date date) {
+			mMessage.mDate = date;
+			return this;
 		}
 		
 	}
@@ -59,16 +66,57 @@ public class ConfirmationReceipt extends CarteggioMessage {
 		header.addField(new RawField("References", "<" + mParentId + ">"));		
 		header.addField(Fields.date(mDate));
 		header.addField(new RawField(FieldName.MESSAGE_ID, "<" + mMessageId + ">"));
-				
-		/* build the receipt */
+						
+		BodyPart receiptPart = buildReceiptPart();        				
+		BodyPart receiptText = buildTextPart();        		
 		
+		/* multipart containing the the receipt */ 
+		
+		Multipart multipart = builder.newMultipart("report");
+		
+        multipart.addBodyPart(receiptPart);
+        multipart.addBodyPart(receiptText);
+        
+        /* add the multipart as body of the message */
+        
+        HashMap<String, String> multipartParameters = new HashMap<String, String>();
+		
+        multipartParameters.put("report-type", "disposition-notification");
+        multipartParameters.put("boundary", MimeUtil.createUniqueBoundary());
+		
+		msg.setMultipart(multipart, multipartParameters);
+		
+		return msg;
+	}
+
+	private BodyPart buildTextPart() {
+		StorageBodyFactory bodyFactory = new StorageBodyFactory();
+				
+		String text;
+		
+		if ( mDate == null) {		
+			text = "This is a reception confirmation for a message you sent";
+		} else {
+			text = "This is a reception confirmation for the message\nyou sent on " + mDate + ".";
+		}
+				
+		TextBody body = bodyFactory.textBody(text, "UTF-8");
+		
+		BodyPart bodyPart = new BodyPart();
+        bodyPart.setText(body);
+        bodyPart.setContentTransferEncoding("quoted-printable");
+		        
+		return bodyPart;
+	}
+	
+	private BodyPart buildReceiptPart() {
 		StorageBodyFactory bodyFactory = new StorageBodyFactory();
 		
 		StringBuilder bodyText = new StringBuilder();
 		
 		bodyText.append("Reporting-UA: " + CARTEGGIO_USER_AGENT + "\n");
 		bodyText.append("Final-Recipient: rfc822;" + mFrom.getAddress() + "\n");
-		bodyText.append("Original-Message-ID: <" + mParentId + ">");
+		bodyText.append("Original-Message-ID: <" + mParentId + ">\n");
 		bodyText.append("Disposition: action/MDN-sent-automatically; displayed\n");
 		
 		TextBody body = bodyFactory.textBody(bodyText.toString(), "UTF-8");
@@ -88,24 +136,8 @@ public class ConfirmationReceipt extends CarteggioMessage {
 		part.setBody(body, "message/disposition-notification", parameters);
 		
 		part.setContentDisposition(ContentDispositionField.DISPOSITION_TYPE_INLINE);
-		part.setContentTransferEncoding(MimeUtil.ENC_7BIT);        		
-		
-		/* multipart containing the the receipt */ 
-		
-		Multipart multipart = builder.newMultipart("report");
-		
-        multipart.addBodyPart(part);
-        
-        /* add the multipart as body of the message */
-        
-        HashMap<String, String> multipartParameters = new HashMap<String, String>();
-		
-        multipartParameters.put("report-type", "disposition-notification");
-        multipartParameters.put("boundary", MimeUtil.createUniqueBoundary());
-		
-		msg.setMultipart(multipart, multipartParameters);
-		
-		return msg;
+		part.setContentTransferEncoding(MimeUtil.ENC_7BIT);
+		return part;
 	}
 	
 }
