@@ -159,8 +159,9 @@ public class IncomingMessagesProcessor {
 							
 		folder.moveMessages(receipts.keySet().toArray(new Message[0]), carteggioFolder);
 		
-
-		NotificationService.notifyNewIncomingMessages(mContext);
+		if ( incomingMessages.size() > 0) { 
+			NotificationService.notifyNewIncomingMessages(mContext);
+		}
 		
 	}
 
