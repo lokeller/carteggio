@@ -15,6 +15,7 @@ package ch.carteggio.provider.sync;
 import java.util.ArrayList;
 import java.util.Date;
 
+import org.apache.james.mime4j.dom.address.Mailbox;
 import org.apache.james.mime4j.field.address.ParseException;
 
 import android.content.ContentResolver;
@@ -261,8 +262,19 @@ public class OutgoingMessagesProcessor {
 							
 			while ( c.moveToNext()) {
 				
-				destinationMailboxes.add(c.getString(c.getColumnIndex(Participants.NAME)) +
-						" <" + c.getString(c.getColumnIndex(Participants.EMAIL)) + ">");
+				String email = c.getString(c.getColumnIndex(Participants.EMAIL));				
+				
+				String emailParts [] = email.split("@");
+				
+				if ( emailParts.length != 2) {
+					continue;
+				}
+				
+				Mailbox m = new Mailbox(c.getString(c.getColumnIndex(Participants.NAME)),
+										emailParts[0], emailParts[1]);
+				
+				destinationMailboxes.add(m.getAddress());
+				
 			}
 			
 		} finally {
