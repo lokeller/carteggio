@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 public class EmailUtils {
 
 	private static final Pattern[] mQuotePatterns = {		
-			Pattern.compile("On [^\\n]+ wrote:\\n+(>[^\\n]*\\n)+", Pattern.MULTILINE),
+			Pattern.compile("(> )?On [^\\n]+ wrote:\\n+(>[^\\n]*\\n)+", Pattern.MULTILINE),
 			Pattern.compile("(>[^\\n]*\\n){2,}", Pattern.MULTILINE),			
 	};
 	
