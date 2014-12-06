@@ -13,6 +13,7 @@
 package ch.carteggio.ui;
 
 import java.util.Date;
+import java.util.HashSet;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -21,6 +22,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import ch.carteggio.net.EmailUtils;
 import ch.carteggio.provider.CarteggioProviderHelper;
 import ch.carteggio.provider.CarteggioContract.Messages;
 import ch.carteggio.R;
@@ -30,6 +32,8 @@ public class MessagesAdapter extends CursorAdapter {
 
 	private static final int TYPE_OUTGOING = 0;
 	private static final int TYPE_INCOMING = 1;
+	
+	private HashSet<Long> expandedMessages = new HashSet<Long>();
 	
 	private boolean isGroupConversation;
 	
@@ -98,8 +102,19 @@ public class MessagesAdapter extends CursorAdapter {
 		}
 		
 		TextView messageText = (TextView) view.findViewById(R.id.message);
+				
+		if (EmailUtils.containsQuote(text)) {
 		
-		messageText.setText(text);
+			if ( expandedMessages.contains(messageId)) {
+				messageText.setText(text);
+			} else {
+				messageText.setText(EmailUtils.stripQuote(text));				
+				messageDetails.setText("...  " + messageDetails.getText());				
+			}
+			
+		} else {
+			messageText.setText(text);
+		}
 		
 		if ( type == TYPE_INCOMING ) {
 		
@@ -143,6 +158,17 @@ public class MessagesAdapter extends CursorAdapter {
 			return inflater.inflate(R.layout.list_item_message_outgoing, null);
 		}					
 		
+	}
+
+	public void toggleExpanded(long id) {
+		
+		if (expandedMessages.contains(id)) {
+			expandedMessages.remove(id);	
+		} else {
+			expandedMessages.add(id);
+		}
+		
+		notifyDataSetChanged();
 	}
 
 	

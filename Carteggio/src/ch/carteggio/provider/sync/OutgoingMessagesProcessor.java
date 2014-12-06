@@ -15,6 +15,7 @@ package ch.carteggio.provider.sync;
 import java.util.ArrayList;
 import java.util.Date;
 
+import org.apache.james.mime4j.dom.address.Mailbox;
 import org.apache.james.mime4j.field.address.ParseException;
 
 import android.content.ContentResolver;
@@ -76,7 +77,8 @@ public class OutgoingMessagesProcessor {
 			while (c.moveToNext()) {
 
 				long messageId = c.getLong(c.getColumnIndex(Messages._ID));
-				long conversationId = c.getLong(c.getColumnIndex(Messages.CONVERSATION_ID));				
+				long conversationId = c.getLong(c.getColumnIndex(Messages.CONVERSATION_ID));
+				Date messageDate = new Date(c.getLong(c.getColumnIndex(Messages.SENT_DATE)));
 				
 				Uri conversationUri = ContentUris.withAppendedId(Conversations.CONTENT_URI, conversationId);
 				
@@ -95,6 +97,7 @@ public class OutgoingMessagesProcessor {
 					Log.d(LOG_TAG, "Sending confirmation");
 					
 					ConfirmationReceipt receipt = new ConfirmationReceipt.Builder().setFrom(senderMailbox)
+							   .setDate(messageDate)
 							   .setDestinations(destinationMailboxes)
 							   .setSubject(messageSubject)
 							   .setMessageId(messageGlobalId)
@@ -261,8 +264,19 @@ public class OutgoingMessagesProcessor {
 							
 			while ( c.moveToNext()) {
 				
-				destinationMailboxes.add(c.getString(c.getColumnIndex(Participants.NAME)) +
-						" <" + c.getString(c.getColumnIndex(Participants.EMAIL)) + ">");
+				String email = c.getString(c.getColumnIndex(Participants.EMAIL));				
+				
+				String emailParts [] = email.split("@");
+				
+				if ( emailParts.length != 2) {
+					continue;
+				}
+				
+				Mailbox m = new Mailbox(c.getString(c.getColumnIndex(Participants.NAME)),
+										emailParts[0], emailParts[1]);
+				
+				destinationMailboxes.add(m.getAddress());
+				
 			}
 			
 		} finally {

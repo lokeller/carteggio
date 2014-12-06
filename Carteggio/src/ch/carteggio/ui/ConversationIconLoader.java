@@ -21,9 +21,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Pattern;
 
+import android.app.ActionBar;
 import android.app.ActivityManager;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -40,7 +42,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v4.util.LruCache;
 import android.widget.ImageView;
-import android.widget.QuickContactBadge;
 import ch.carteggio.provider.CarteggioProviderHelper;
 
 public class ConversationIconLoader {
@@ -73,6 +74,8 @@ public class ConversationIconLoader {
      */
     private final LruCache<Long, Bitmap> mBitmapCache;
 
+    private final ArrayList<IconUpdate> mPendingIconUpdates = new ArrayList<ConversationIconLoader.IconUpdate>();
+    
     /**
      * @see <a href="http://developer.android.com/design/style/color.html">Color palette used</a>
      */
@@ -124,40 +127,46 @@ public class ConversationIconLoader {
             }
         };
     }
-
-    /**
-     * Load a conversation picture and display it using the supplied {@link ImageView} instance.
-     *
-     * <p>
-     * If a picture is found in the cache, it is displayed in the {@code ImageView}
-     * immediately. Otherwise a {@link ConversationPictureRetrievalTask} is started to try to load the
-     * conversation picture in a background thread. Depending on the result the contact picture, the group
-     * picture or a fallback picture is then stored in the bitmap cache.
-     * </p>
-     *
-     * @param conversationId
-     *         The id of the conversation for which we need to find the image.
-     * @param image
-     *         The {@code ImageView} instance to receive the picture.
-     *
-     * @see #mBitmapCache
-     * @see #calculateFallbackBitmap(Address)
-     */
-    public void loadConversationPicture(long conversationId, ImageView image) {
+    
+    public void loadConversationPicture(long conversationId, ActionBar actionBar) {    	
+		loadConversationPicture(conversationId, new ActionBarIconUpdate(actionBar));		
+    }
+    
+    public void loadConversationPicture(long conversationId, ImageView imageView) {    	    	
+		loadConversationPicture(conversationId, new ImageViewIconUpdate(imageView));		
+    }
+    
+    private void loadConversationPicture(long conversationId, IconUpdate update) {
+    	
+    	boolean pending = false;
+    	
+    	for ( IconUpdate update2 : mPendingIconUpdates) {
+    		if ( update2.hasSameTarget(update)) {
+    			update = update2;
+    			pending = true;
+    			break;
+    		}
+    	}
+    	
+    	if ( pending == false ) {
+    		mPendingIconUpdates.add(update);
+    	}
+    	
         Bitmap bitmap = getBitmapFromCache(conversationId);
         if (bitmap != null) {
             // The picture was found in the bitmap cache
-            image.setImageBitmap(bitmap);
-        } else if (cancelPotentialWork(conversationId, image)) {
-            ConversationPictureRetrievalTask task = new ConversationPictureRetrievalTask(image, conversationId);
-            AsyncDrawable asyncDrawable = new AsyncDrawable(mResources,
-                    calculateFallbackBitmap(new String[] {"none"}), task);
-            image.setImageDrawable(asyncDrawable);
+            update.setBitmap(bitmap);
+        } else if (cancelPotentialWork(conversationId, update)) {
+            ConversationPictureRetrievalTask task = new ConversationPictureRetrievalTask(update, conversationId);
+            
+            update.setTask(task);            
+            update.setBitmap(calculateFallbackBitmap(new String[] {"none"}));
+                        
             try {
                 task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             } catch (RejectedExecutionException e) {
                 // We flooded the thread pool queue... use a fallback picture
-                image.setImageBitmap(calculateFallbackBitmap(new String[] {"none"}));
+                update.setDrawable(new BitmapDrawable(update.getResources(), calculateFallbackBitmap(new String[] {"none"})));
             }
         }
     }
@@ -223,15 +232,15 @@ public class ConversationIconLoader {
      * @param address
      *         The {@link Address} instance holding the email address that is used to search the
      *         contacts database.
-     * @param badge
+     * @param holder
      *         The {@code QuickContactBadge} instance that will receive the picture.
      *
      * @return {@code true}, if the contact picture should be loaded in a background thread.
      *         {@code false}, if another {@link ContactPictureRetrievalTask} was already scheduled
      *         to load that contact picture.
      */
-    private boolean cancelPotentialWork(long address, ImageView badge) {
-        final ConversationPictureRetrievalTask task = getConversationPictureRetrievalTask(badge);
+    private boolean cancelPotentialWork(long address, IconUpdate holder) {
+        final ConversationPictureRetrievalTask task = holder.getTask();
 
         if (task != null) {
             if (address != task.getConversationId()) {
@@ -247,28 +256,16 @@ public class ConversationIconLoader {
         return true;
     }
 
-    private ConversationPictureRetrievalTask getConversationPictureRetrievalTask(ImageView image) {
-        if (image != null) {
-           Drawable drawable = image.getDrawable();
-           if (drawable instanceof AsyncDrawable) {
-               AsyncDrawable asyncDrawable = (AsyncDrawable) drawable;
-               return asyncDrawable.getContactPictureRetrievalTask();
-           }
-        }
-
-        return null;
-    }
-
 
     /**
      * Load a contact picture in a background thread.
      */
     class ConversationPictureRetrievalTask extends AsyncTask<Void, Void, Bitmap> {
-        private final WeakReference<ImageView> mImageViewReference;
+        private final IconUpdate mIconUpdate;
         private final long mConversationId;
 
-        ConversationPictureRetrievalTask(ImageView image, long conversationId) {
-        	mImageViewReference = new WeakReference<ImageView>(image);
+        ConversationPictureRetrievalTask(IconUpdate iconHolder, long conversationId) {
+        	mIconUpdate = iconHolder;
             mConversationId = conversationId;
         }
 
@@ -327,37 +324,109 @@ public class ConversationIconLoader {
 
         @Override
         protected void onPostExecute(Bitmap bitmap) {
-            if (mImageViewReference != null) {
-                ImageView badge = mImageViewReference.get();
-                if (badge != null && getConversationPictureRetrievalTask(badge) == this) {
-                    badge.setImageBitmap(bitmap);
-                }
-            }
+        	if (mIconUpdate.getTask() == this) {
+                mIconUpdate.setBitmap(bitmap);
+                mPendingIconUpdates.remove(mIconUpdate);
+            }           
         }
     }
-
-    /**
-     * {@code Drawable} subclass that stores a reference to the {@link ContactPictureRetrievalTask}
-     * that is trying to load the contact picture.
-     *
-     * <p>
-     * The reference is used by {@link ContactPictureLoader#cancelPotentialWork(Address,
-     * QuickContactBadge)} to find out if the contact picture is already being loaded by a
-     * {@code ContactPictureRetrievalTask}.
-     * </p>
-     */
-    static class AsyncDrawable extends BitmapDrawable {
-        private final WeakReference<ConversationPictureRetrievalTask> mAsyncTaskReference;
-
-        public AsyncDrawable(Resources res, Bitmap bitmap, ConversationPictureRetrievalTask task) {
-            super(res, bitmap);
-            mAsyncTaskReference = new WeakReference<ConversationPictureRetrievalTask>(task);
-        }
-
-        public ConversationPictureRetrievalTask getContactPictureRetrievalTask() {
-            return mAsyncTaskReference.get();
-        }
+    
+    private abstract class IconUpdate {
+    	
+    	private ConversationPictureRetrievalTask mTask;
+    	
+    	public void setTask(ConversationPictureRetrievalTask task) {
+    		mTask = task;
+    	}
+    	
+    	public ConversationPictureRetrievalTask getTask() {
+    		return mTask;
+    	}
+    	
+    	public void setBitmap(Bitmap bitmap) {
+    		setDrawable(new BitmapDrawable(getResources(), bitmap));
+    	}
+    	    	
+    	public abstract void setDrawable(Drawable d);
+    	public abstract Resources getResources();
+    	
+    	public abstract boolean hasSameTarget(IconUpdate holder);
+    }
+    
+    private class ActionBarIconUpdate extends IconUpdate {
+			
+		private WeakReference<ActionBar> mActionBar;		
+		
+		public ActionBarIconUpdate(ActionBar actionBar) {
+			mActionBar = new WeakReference<ActionBar>(actionBar);
+		}
+		
+		@Override
+		public void setDrawable(Drawable d) {			
+			ActionBar actionBar = mActionBar.get();
+			
+			if ( actionBar == null) return;
+						
+			actionBar.setIcon(d);
+		}
+		
+		@Override
+		public Resources getResources() {
+			ActionBar actionBar = mActionBar.get();
+			
+			if ( actionBar == null) return null;
+			
+			return actionBar.getThemedContext().getResources();
+		}
+		
+		public boolean hasSameTarget(IconUpdate holder) {
+			
+			if ( holder instanceof ActionBarIconUpdate ) {
+				return ((ActionBarIconUpdate) holder).mActionBar.get() == mActionBar.get();
+			}
+			
+			return false;
+			
+		}
+		
     }
 
+    private class ImageViewIconUpdate extends IconUpdate {
+		
+		private WeakReference<ImageView> mImageView;				
+		
+		public ImageViewIconUpdate(ImageView imageView) {
+			mImageView = new WeakReference<ImageView>(imageView);			
+		}
+		
+		@Override
+		public void setDrawable(Drawable d) {								
+			ImageView imageView = mImageView.get();
+			
+			if ( imageView == null) return;
+			
+			imageView.setImageDrawable(d);
+		}
+		
+		@Override
+		public Resources getResources() {
+			ImageView imageView = mImageView.get();
+			
+			if ( imageView == null) return null;
+			
+			return imageView.getResources();
+		}
+		
+		public boolean hasSameTarget(IconUpdate holder) {
+			
+			if ( holder instanceof ImageViewIconUpdate ) {
+				return ((ImageViewIconUpdate) holder).mImageView.get() == mImageView.get();
+			}
+			
+			return false;
+			
+		}
+		
+    }
 	
 }

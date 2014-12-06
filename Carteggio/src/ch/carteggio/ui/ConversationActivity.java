@@ -14,16 +14,17 @@ package ch.carteggio.ui;
 
 import android.content.ContentUris;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Activity;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.CursorLoader;
 import android.content.Loader;
-import android.widget.CursorAdapter;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,12 +39,14 @@ public class ConversationActivity extends Activity {
 	protected static final String CONVERSATION_ID_EXTRA = "ch.carteggio.ConversationActivity.MESSAGE_ID_EXTRA";
 
 	private ListView mMessagesList;
-	private CursorAdapter mAdapter;
+	private MessagesAdapter mAdapter;
 	
 	private Uri mConversation;
 		
 	private static final int LOADER_CONVERSATION = 0;
 	private static final int LOADER_MESSAGES = 1;
+	
+	private ConversationIconLoader mIconLoader;
 	
 	private LoaderCallbacks<Cursor> mConversationLoader = new LoaderCallbacks<Cursor>() {
 		
@@ -162,7 +165,26 @@ public class ConversationActivity extends Activity {
 			}
 		});
 		
+		mMessagesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+			@Override
+			public void onItemClick(AdapterView<?> parent, View view,
+					int position, long id) {
+				
+				if ( mAdapter == null ) return;
+				
+				mAdapter.toggleExpanded(id);
+				
+			}
+			
+
+		});
+		
 		getLoaderManager().initLoader(LOADER_CONVERSATION, null, mConversationLoader);
+		
+		mIconLoader = new ConversationIconLoader(this, Color.RED);
+		
+		mIconLoader.loadConversationPicture( ContentUris.parseId(mConversation) , getActionBar());
 		
 	}
 		

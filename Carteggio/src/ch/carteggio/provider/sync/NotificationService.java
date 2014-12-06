@@ -12,7 +12,7 @@
  *******************************************************************************/
 package ch.carteggio.provider.sync;
 
-import android.app.Notification;
+
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -28,6 +28,8 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
 import ch.carteggio.R;
 import ch.carteggio.provider.CarteggioContract;
 import ch.carteggio.provider.CarteggioProviderHelper;
@@ -192,15 +194,22 @@ public class NotificationService extends Service {
 		} else {
 
 			String quantityString = getResources().getQuantityString(R.plurals.notification_new_incoming_messages, unreadCount);
-			
-			PendingIntent intent = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), Intent.FLAG_ACTIVITY_SINGLE_TOP);
-			
-			Notification.Builder mNotifyBuilder = new Notification.Builder(this)
+						
+			NotificationCompat.Builder notifyBuilder = new NotificationCompat.Builder(this)
 			    .setContentTitle(String.format(quantityString, unreadCount))	    
-			    .setSmallIcon(android.R.drawable.stat_notify_chat)
-			    .setContentIntent(intent)
+			    .setSmallIcon(android.R.drawable.stat_notify_chat)			    
 			    .setContentText(getString(R.string.notification_text_new_messages));
 		
+			Intent resultIntent = new Intent(this, MainActivity.class);
+						
+			TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+			stackBuilder.addParentStack(MainActivity.class);			
+			stackBuilder.addNextIntent(resultIntent);
+
+			PendingIntent resultPendingIntent = stackBuilder.getPendingIntent( 0, PendingIntent.FLAG_UPDATE_CURRENT);
+
+			notifyBuilder.setContentIntent(resultPendingIntent);
+			
 			if ( newMessage ) {
 				
 				Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
@@ -210,14 +219,14 @@ public class NotificationService extends Service {
 				long pattern [] = { 1000, 500, 2000 };
 				
 				if ( manager.getRingerMode() == AudioManager.RINGER_MODE_NORMAL) {
-					mNotifyBuilder.setSound(uri);
-					mNotifyBuilder.setVibrate(pattern);
+					notifyBuilder.setSound(uri);
+					notifyBuilder.setVibrate(pattern);
 				} else if (manager.getRingerMode() == AudioManager.RINGER_MODE_VIBRATE) {
-					mNotifyBuilder.setVibrate(pattern);
+					notifyBuilder.setVibrate(pattern);
 				}
 			}
 			
-			mNotificationManager.notify(INCOMING_NOTIFICATION_ID, mNotifyBuilder.getNotification());
+			mNotificationManager.notify(INCOMING_NOTIFICATION_ID, notifyBuilder.build());
 
 		}
 		
@@ -239,23 +248,25 @@ public class NotificationService extends Service {
 		NotificationManager mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
 		
-		Notification.Builder mNotifyBuilder = new Notification.Builder(this)
+		NotificationCompat.Builder notifyBuilder = new NotificationCompat.Builder(this)
 		    .setContentTitle("Carteggio network error")		    
 		    .setSmallIcon(android.R.drawable.stat_notify_error);
-				
-		PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, NetworkStatusActivity.class), 0);
+
+		TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+		stackBuilder.addParentStack(NetworkStatusActivity.class);			
+		stackBuilder.addNextIntent(new Intent(this, NetworkStatusActivity.class));
 		
-		mNotifyBuilder.setContentIntent(pendingIntent);
+		notifyBuilder.setContentIntent(stackBuilder.getPendingIntent( 0, PendingIntent.FLAG_UPDATE_CURRENT));
 		
 		if ( mSendFailure && mReceiveFailure) {
-			mNotifyBuilder.setContentText("There was a problem while delivering and receiving messages");
+			notifyBuilder.setContentText("There was a problem while delivering and receiving messages");
 		} else if ( mSendFailure ) {
-			mNotifyBuilder.setContentText("There was a problem while delivering messages");
+			notifyBuilder.setContentText("There was a problem while delivering messages");
 		} else if (mReceiveFailure) {
-			mNotifyBuilder.setContentText("There was a problem while receiving messages");
+			notifyBuilder.setContentText("There was a problem while receiving messages");
 		}
 		
-		mNotificationManager.notify(ERROR_NOTIFICATION_ID, mNotifyBuilder.getNotification());
+		mNotificationManager.notify(ERROR_NOTIFICATION_ID, notifyBuilder.build());
 		
 	}
 	
