@@ -59,87 +59,17 @@ public class SmtpTransport {
 	public static boolean DEBUG_PROTOCOL_SMTP = false;
 	public static boolean DEBUG_SENSITIVE = false;
 	
-    private String mHost;
-    private int mPort;
-    private String mUsername;
-    private String mPassword;
-    private AuthType mAuthType;
-    private ConnectionSecurity mConnectionSecurity;
     private Socket mSocket;
     private PeekableInputStream mIn;
     private OutputStream mOut;
     private boolean m8bitEncodingAllowed;
     private int mLargestAcceptableMessage;
+    
+    private SmtpServerSettings mSettings;
 
-    public SmtpTransport(String uri, String password) {
-    	
-    	/* <p>Possible forms:</p>
-	     * <pre>
-	     * smtp://user:password@server:port ConnectionSecurity.NONE
-	     * smtp+tls+://user:password@server:port ConnectionSecurity.STARTTLS_REQUIRED
-	     * smtp+ssl+://user:password@server:port ConnectionSecurity.SSL_TLS_REQUIRED
-	     * </pre>
-	     */
-    	
-        mAuthType = AuthType.PLAIN;
-        mUsername = null;
-        mPassword = password;
-
-        URI smtpUri;
-        try {
-            smtpUri = new URI(uri);
-        } catch (URISyntaxException use) {
-            throw new IllegalArgumentException("Invalid SmtpTransport URI", use);
-        }
-
-        String scheme = smtpUri.getScheme();
-        /*
-         * Currently available schemes are:
-         * smtp
-         * smtp+tls+
-         * smtp+ssl+
-         *
-         * The following are obsolete schemes that may be found in pre-existing
-         * settings from earlier versions or that may be found when imported. We
-         * continue to recognize them and re-map them appropriately:
-         * smtp+tls
-         * smtp+ssl
-         */
-        if (scheme.equals("smtp")) {
-            mConnectionSecurity = ConnectionSecurity.NONE;
-            mPort = 25;
-        } else if (scheme.startsWith("smtp+tls")) {
-            mConnectionSecurity = ConnectionSecurity.STARTTLS_REQUIRED;
-            mPort = 587;
-        } else if (scheme.startsWith("smtp+ssl")) {
-            mConnectionSecurity = ConnectionSecurity.SSL_TLS_REQUIRED;
-            mPort = 465;
-        } else {
-            throw new IllegalArgumentException("Unsupported protocol (" + scheme + ")");
-        }
-
-        mHost = smtpUri.getHost();
-
-        if (smtpUri.getPort() != -1) {
-            mPort = smtpUri.getPort();
-        }
-
-        if (smtpUri.getUserInfo() != null) {
-            try {
-                String[] userInfoParts = smtpUri.getUserInfo().split(":");
-                mUsername = URLDecoder.decode(userInfoParts[0], "UTF-8");                
-                if (userInfoParts.length > 1) {
-                    mAuthType = AuthType.valueOf(userInfoParts[1]);
-                }
-            } catch (UnsupportedEncodingException enc) {
-                // This shouldn't happen since the encoding is hardcoded to UTF-8
-                throw new IllegalArgumentException("Couldn't urldecode username.", enc);
-            }
-        }
+    public SmtpTransport(SmtpServerSettings settings) {
+    	mSettings = settings;
     }
-
-    
-    
     
     public boolean is8bitEncodingAllowed() {
 		return m8bitEncodingAllowed;
@@ -147,15 +77,15 @@ public class SmtpTransport {
 
 	public void open() throws MessagingException {
         try {
-            InetAddress[] addresses = InetAddress.getAllByName(mHost);
+            InetAddress[] addresses = InetAddress.getAllByName(mSettings.mHost);
             for (int i = 0; i < addresses.length; i++) {
                 try {
-                    SocketAddress socketAddress = new InetSocketAddress(addresses[i], mPort);
-                    if (mConnectionSecurity == ConnectionSecurity.SSL_TLS_REQUIRED) {
+                    SocketAddress socketAddress = new InetSocketAddress(addresses[i], mSettings.mPort);
+                    if (mSettings.mConnectionSecurity == ConnectionSecurity.SSL_TLS_REQUIRED) {
                         SSLContext sslContext = SSLContext.getInstance("TLS");
                         sslContext.init(null,
                                 new TrustManager[] { TrustManagerFactory.get(
-                                        mHost, mPort) },
+                                		mSettings.mHost, mSettings.mPort) },
                                 new SecureRandom());
                         mSocket = TrustedSocketFactory.createSocket(sslContext);
                         mSocket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
@@ -206,16 +136,16 @@ public class SmtpTransport {
             m8bitEncodingAllowed = extensions.containsKey("8BITMIME");
 
 
-            if (mConnectionSecurity == ConnectionSecurity.STARTTLS_REQUIRED) {
+            if (mSettings.mConnectionSecurity == ConnectionSecurity.STARTTLS_REQUIRED) {
                 if (extensions.containsKey("STARTTLS")) {
                     executeSimpleCommand("STARTTLS");
 
                     SSLContext sslContext = SSLContext.getInstance("TLS");
                     sslContext.init(null,
-                            new TrustManager[] { TrustManagerFactory.get(mHost,
-                                    mPort) }, new SecureRandom());
-                    mSocket = TrustedSocketFactory.createSocket(sslContext, mSocket, mHost,
-                              mPort, true);
+                            new TrustManager[] { TrustManagerFactory.get(mSettings.mHost,
+                            		mSettings.mPort) }, new SecureRandom());
+                    mSocket = TrustedSocketFactory.createSocket(sslContext, mSocket, mSettings.mHost,
+                    		mSettings.mPort, true);
                     mIn = new PeekableInputStream(new BufferedInputStream(mSocket.getInputStream(),
                                                   1024));
                     mOut = new BufferedOutputStream(mSocket.getOutputStream(), 1024);
@@ -258,17 +188,17 @@ public class SmtpTransport {
                 }
             }
 
-            if (mUsername != null && mUsername.length() > 0 &&
-                    mPassword != null && mPassword.length() > 0) {
+            if (mSettings.mUsername != null && mSettings.mUsername.length() > 0 &&
+            		mSettings.mPassword != null && mSettings.mPassword.length() > 0) {
 
-                switch (mAuthType) {
+                switch (mSettings.mAuthType) {
 
                 case PLAIN:
                     // try saslAuthPlain first, because it supports UTF-8 explicitly
                     if (authPlainSupported) {
-                        saslAuthPlain(mUsername, mPassword);
+                        saslAuthPlain(mSettings.mUsername, mSettings.mPassword);
                     } else if (authLoginSupported) {
-                        saslAuthLogin(mUsername, mPassword);
+                        saslAuthLogin(mSettings.mUsername, mSettings.mPassword);
                     } else {
                         throw new MessagingException("Authentication methods SASL PLAIN and LOGIN are unavailable.");
                     }
@@ -276,7 +206,7 @@ public class SmtpTransport {
 
                 case CRAM_MD5:
                     if (authCramMD5Supported) {
-                        saslAuthCramMD5(mUsername, mPassword);
+                        saslAuthCramMD5(mSettings.mUsername, mSettings.mPassword);
                     } else {
                         throw new MessagingException("Authentication method CRAM-MD5 is unavailable.");
                     }
@@ -587,7 +517,7 @@ public class SmtpTransport {
         }
 
         String b64Nonce = respList.get(0);
-        String b64CRAMString = Authentication.computeCramMd5(mUsername, mPassword, b64Nonce);
+        String b64CRAMString = Authentication.computeCramMd5(mSettings.mUsername, mSettings.mPassword, b64Nonce);
 
         try {
             executeSimpleCommand(b64CRAMString, true);

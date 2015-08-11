@@ -62,20 +62,32 @@
             <requestFocus />
         </EditText>
 
+        <!-- INCOMING SERVER -->
+        
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dip"
             android:layout_marginLeft="24dip"
             android:layout_marginRight="24dip"
+            android:textStyle="bold"
             android:layout_marginTop="16dip"
             android:text="@string/incoming_server"
             android:textAllCaps="true"
-            android:textStyle="bold"
             android:textAppearance="?android:attr/textAppearanceSmall" />
 
-        <EditText
-            android:id="@+id/account_incoming"
+       <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="16dip"
+            android:text="@string/server_protocol"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+       
+        <Spinner
+            android:id="@+id/account_incoming_protocol"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dip"
@@ -83,22 +95,127 @@
             android:layout_marginRight="24dip"
             android:layout_marginTop="8dip"
             android:ems="10"
-            android:hint="@string/outgoing_server_hint"
-            android:inputType="textUri" />
+        />
 
         <TextView
-            android:id="@+id/textView2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dip"
             android:layout_marginLeft="24dip"
             android:layout_marginRight="24dip"
+            android:layout_marginTop="16dip"
+            android:text="@string/server_auth"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+       
+        <Spinner
+            android:id="@+id/account_incoming_auth"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
             android:layout_marginTop="8dip"
-            android:text="@string/label_incoming_description"
+            android:ems="10"
+        />
+        
+        
+       <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="16dip"
+            android:text="@string/server_host"
             android:textAppearance="?android:attr/textAppearanceSmall" />
         
         
-        <EditText
+       <EditText
+            android:id="@+id/account_incoming_host"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="8dip"
+            android:ems="10"
+            android:inputType="textUri" />
+
+	   <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="16dip"
+            android:text="@string/inbox_path"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+        
+       <EditText
+            android:id="@+id/account_inbox_path"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="8dip"
+            android:ems="10"
+            android:text="@string/default_inbox_path"
+            android:inputType="textUri" />       
+       
+       <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="16dip"
+            android:text="@string/server_port"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+        
+       <EditText
+            android:id="@+id/account_incoming_port"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="8dip"
+            android:ems="10"
+            android:inputType="number"/>       
+         
+      <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="16dip"
+            android:text="@string/server_username"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+        
+       <EditText
+            android:id="@+id/account_incoming_user"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="8dip"
+            android:ems="10"
+            android:inputType="textUri" />
+       
+	 <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="16dip"
+            android:text="@string/server_password"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+     
+     <EditText
             android:id="@+id/account_incoming_password"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -107,9 +224,11 @@
             android:layout_marginRight="24dip"
             android:layout_marginTop="8dip"
             android:ems="10"
-            android:hint="@string/hint_password"
             android:inputType="textPassword" />
-
+     
+     
+        <!-- OUTGOING SERVER -->
+        
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -122,8 +241,38 @@
             android:textAllCaps="true"
             android:textAppearance="?android:attr/textAppearanceSmall" />
 
-        <EditText
-            android:id="@+id/account_outgoing"
+       <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="16dip"
+            android:text="@string/server_protocol"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+       
+        <Spinner
+            android:id="@+id/account_outgoing_protocol"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="8dip"
+            android:ems="10"/>
+       
+         <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="16dip"
+            android:text="@string/server_auth"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+       
+        <Spinner
+            android:id="@+id/account_outgoing_auth"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dip"
@@ -131,21 +280,82 @@
             android:layout_marginRight="24dip"
             android:layout_marginTop="8dip"
             android:ems="10"
-            android:hint="@string/incoming_server_hint"
-            android:inputType="textUri" />
-
-        <TextView
-            android:id="@+id/textView1"
+        />
+        
+       <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dip"
             android:layout_marginLeft="24dip"
             android:layout_marginRight="24dip"
-            android:layout_marginTop="8dip"
-            android:text="@string/label_outgoing_description"
+            android:layout_marginTop="16dip"
+            android:text="@string/server_host"
             android:textAppearance="?android:attr/textAppearanceSmall" />
+        
+       <EditText
+            android:id="@+id/account_outgoing_host"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="8dip"
+            android:ems="10"
+            android:inputType="textUri" />
 
-        <EditText
+       <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="16dip"
+            android:text="@string/server_port"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+        
+       <EditText
+            android:id="@+id/account_outgoing_port"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="8dip"
+            android:ems="10"
+            android:inputType="number"/>       
+       
+      <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="16dip"
+            android:text="@string/server_username"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+        
+       <EditText
+            android:id="@+id/account_outgoing_user"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="8dip"
+            android:ems="10"
+            android:inputType="textUri" />
+       
+	 <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dip"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
+            android:layout_marginTop="16dip"
+            android:text="@string/server_password"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+     
+     <EditText
             android:id="@+id/account_outgoing_password"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -154,7 +364,6 @@
             android:layout_marginRight="24dip"
             android:layout_marginTop="8dip"
             android:ems="10"
-            android:hint="@string/hint_password"
             android:inputType="textPassword" />
     </LinearLayout>
 

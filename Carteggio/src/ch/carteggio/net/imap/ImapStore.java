@@ -32,7 +32,6 @@ import java.util.Set;
 import android.content.Context;
 import android.util.Log;
 import ch.carteggio.net.MessagingException;
-import ch.carteggio.net.imap.ImapConnection.ImapServerSettings;
 import ch.carteggio.net.imap.ImapSession.FolderType;
 import ch.carteggio.net.imap.parsing.ImapList;
 import ch.carteggio.net.imap.parsing.ImapResponse;
@@ -111,101 +110,14 @@ public class ImapStore {
      */
     private HashMap<String, ImapSession> mSessionCache = new HashMap<String, ImapSession>();
 
-    public ImapStore(Context context, String accountUri, ImapPreferences preferences, String password) throws MessagingException {
+    public ImapStore(Context context, ImapServerSettings settings, ImapPreferences preferences) throws MessagingException {
     
     	mContext = context;
     	
-        URI imapUri;
-        
         mPreferences = preferences;
         
-        try {
-            imapUri = new URI(accountUri);
-        } catch (URISyntaxException use) {
-            throw new IllegalArgumentException("Invalid ImapStore URI", use);
-        }
-
-        String scheme = imapUri.getScheme();
-        /*
-         * Currently available schemes are:
-         * imap
-         * imap+tls+
-         * imap+ssl+
-         *
-         * The following are obsolete schemes that may be found in pre-existing
-         * settings from earlier versions or that may be found when imported. We
-         * continue to recognize them and re-map them appropriately:
-         * imap+tls
-         * imap+ssl
-         */
-        if (scheme.equals("imap")) {
-            mSettings.mConnectionSecurity = ConnectionSecurity.NONE;
-            mSettings.mPort = 143;
-        } else if (scheme.startsWith("imap+tls")) {
-        	mSettings.mConnectionSecurity = ConnectionSecurity.STARTTLS_REQUIRED;
-        	mSettings.mPort = 143;
-        } else if (scheme.startsWith("imap+ssl")) {
-        	mSettings.mConnectionSecurity = ConnectionSecurity.SSL_TLS_REQUIRED;
-        	mSettings.mPort = 993;
-        } else {
-            throw new IllegalArgumentException("Unsupported protocol (" + scheme + ")");
-        }
-
-        mSettings.mHost = imapUri.getHost();
-
-        if (imapUri.getPort() != -1) {
-        	mSettings.mPort = imapUri.getPort();
-        }
-
-        mSettings.mPassword = password;
+        mSettings = settings;
         
-        if (imapUri.getUserInfo() != null) {
-            try {
-                String userinfo = imapUri.getUserInfo();
-                String[] userInfoParts = userinfo.split(":");
-
-                if (userinfo.endsWith(":")) {
-                    // Password is empty. This can only happen after an account was imported.
-                	mSettings.mAuthType = AuthType.valueOf(userInfoParts[0]);
-                	mSettings.mUsername = URLDecoder.decode(userInfoParts[1], "UTF-8");
-                } else if (userInfoParts.length == 1) {
-                	mSettings.mAuthType = AuthType.PLAIN;
-                	mSettings.mUsername = URLDecoder.decode(userInfoParts[0], "UTF-8");                	
-                } else {
-                	mSettings.mAuthType = AuthType.valueOf(userInfoParts[0]);
-                	mSettings.mUsername = URLDecoder.decode(userInfoParts[1], "UTF-8");
-                	
-                }
-            } catch (UnsupportedEncodingException enc) {
-                // This shouldn't happen since the encoding is hardcoded to UTF-8
-                throw new IllegalArgumentException("Couldn't urldecode username or password.", enc);
-            }
-        } else {
-            throw new IllegalArgumentException("Missing user name");
-        }
-
-        boolean autoDetectNamespace = true;
-        
-        String path = imapUri.getPath();
-        if (path != null && path.length() > 1) {
-            // Strip off the leading "/"
-            String cleanPath = path.substring(1);
-
-            if (cleanPath.length() >= 2 && cleanPath.charAt(1) == '|') {
-                autoDetectNamespace = cleanPath.charAt(0) == '1';
-                if (!autoDetectNamespace) {
-                	mSettings.mPathPrefix = cleanPath.substring(2);
-                }
-            } else {
-                if (cleanPath.length() > 0) {
-                	mSettings.mPathPrefix = cleanPath;
-                    autoDetectNamespace = false;
-                }
-            }
-        }
-        // Make extra sure mPathPrefix is null if "auto-detect namespace" is configured
-        mSettings.mPathPrefix = autoDetectNamespace ? null : mSettings.mPathPrefix;
-
     }
 
     public Context getContext() {

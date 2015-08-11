@@ -20,9 +20,12 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import ch.carteggio.R;
+import ch.carteggio.net.security.AuthType;
 import ch.carteggio.provider.AuthenticatorService;
 import ch.carteggio.provider.CarteggioProviderHelper;
 import ch.carteggio.provider.sync.MessageReceiverService;
@@ -35,8 +38,17 @@ public class EditAccountActivity extends Activity {
     
 	private TextView mEmailText;
 	private TextView mDisplayNameText;
-	private TextView mIncomingServerText;
-	private TextView mOutgoingServerText;    
+	private Spinner mIncomingAuthMethod;
+	private Spinner mOutgoingAuthMethod;
+	private Spinner mIncomingProto;
+	private Spinner mOutgoingProto;
+	private TextView mIncomingHostText;
+	private TextView mOutgoingHostText;
+	private TextView mIncomingPortText;
+	private TextView mOutgoingPortText;
+	private TextView mInboxPathText;
+	private TextView mIncomingUsernameText;
+	private TextView mOutgoingUsernameText;
 	private TextView mIncomingPasswordText;
 	private TextView mOutgoingPasswordText;
     
@@ -46,29 +58,13 @@ public class EditAccountActivity extends Activity {
 			
 		setContentView(R.layout.activity_edit_account);
 		
-		mEmailText = ((TextView) findViewById(R.id.account_email));
-		mDisplayNameText = ((TextView) findViewById(R.id.account_display_name));
-		mIncomingServerText = ((TextView) findViewById(R.id.account_incoming));		
-		mOutgoingServerText = ((TextView) findViewById(R.id.account_outgoing));
-		mIncomingPasswordText = ((TextView) findViewById(R.id.account_incoming_password));
-		mOutgoingPasswordText = ((TextView) findViewById(R.id.account_outgoing_password));
-		
 		if (!getIntent().getExtras().containsKey("account")) {
 			throw new IllegalArgumentException("account missing form intent");
 		}
 		
 		mAccount = getIntent().getExtras().getParcelable("account");
 		
-		AccountManager manager = AccountManager.get(this);
-		
-		mEmailText.setText(mAccount.name);
-		mDisplayNameText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_DISPLAY_NAME));			
-		mIncomingServerText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_SERVER));
-		mOutgoingServerText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_SERVER));			
-		mIncomingPasswordText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_PASSWORD));
-		mOutgoingPasswordText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_PASSWORD));
-		
-		mEmailText.setEnabled(false);
+		setupFields();
 			
 		// This is received when the new account activity couldn't configure
 		// the account and called this activity to let the user finish to setup
@@ -81,6 +77,88 @@ public class EditAccountActivity extends Activity {
 		}
 		
 		
+	}
+
+	private void setupFields() {
+		
+		AccountManager manager = AccountManager.get(this);
+					
+		mEmailText = ((TextView) findViewById(R.id.account_email));
+		mEmailText.setEnabled(false);
+		mEmailText.setText(mAccount.name);
+		
+		mDisplayNameText = ((TextView) findViewById(R.id.account_display_name));
+		mDisplayNameText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_DISPLAY_NAME));
+		
+		mOutgoingHostText  = ((TextView) findViewById(R.id.account_outgoing_host));
+		mOutgoingHostText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_HOST));
+		
+		mIncomingHostText  = ((TextView) findViewById(R.id.account_incoming_host));
+		mIncomingHostText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_HOST));
+		
+		mIncomingPortText = ((TextView) findViewById(R.id.account_incoming_port));
+		mIncomingPortText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_PORT));
+		
+		mOutgoingPortText = ((TextView) findViewById(R.id.account_outgoing_port));
+		mOutgoingPortText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_PORT));
+		
+		mInboxPathText = ((TextView) findViewById(R.id.account_inbox_path));
+		mInboxPathText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_INBOX_PATH));
+		
+		mIncomingUsernameText = ((TextView) findViewById(R.id.account_incoming_user));
+		mIncomingUsernameText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_USERNAME));
+		
+		mOutgoingUsernameText = ((TextView) findViewById(R.id.account_outgoing_user));
+		mOutgoingUsernameText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_USERNAME));
+		
+		mIncomingPasswordText = ((TextView) findViewById(R.id.account_incoming_password));
+		mIncomingPasswordText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_PASSWORD));
+		
+		mOutgoingPasswordText = ((TextView) findViewById(R.id.account_outgoing_password));
+		mOutgoingPasswordText.setText(manager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_PASSWORD));
+	
+		ArrayAdapter<AuthType> authTypeArray = new ArrayAdapter<AuthType>(this, android.R.layout.simple_list_item_1, AuthType.values());
+		
+		mIncomingAuthMethod = (Spinner) findViewById(R.id.account_incoming_auth);
+		mIncomingAuthMethod.setAdapter(authTypeArray);
+		mIncomingAuthMethod.setSelection(AuthType.valueOf(manager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_AUTH)).ordinal());
+		
+		mOutgoingAuthMethod = (Spinner) findViewById(R.id.account_outgoing_auth);
+		mOutgoingAuthMethod.setAdapter(authTypeArray);
+		mOutgoingAuthMethod.setSelection(AuthType.valueOf(manager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_AUTH)).ordinal());
+		
+		// incoming protocol
+		
+		ArrayAdapter<String> incomingProtoArray = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[] {"imap", "imap+tls", "imap+ssl"});
+		
+		mIncomingProto = (Spinner) findViewById(R.id.account_incoming_protocol);
+		mIncomingProto.setAdapter(incomingProtoArray);
+
+		String currentIncomingProto = manager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_PROTO);
+		
+		for ( int i = 0 ; i < mIncomingProto.getCount(); i++) {
+			if (mIncomingProto.getItemAtPosition(i).equals(currentIncomingProto)) {
+				mIncomingProto.setSelection(i);
+				break;
+			}
+		}
+		
+		// outgoing protocol
+		
+		ArrayAdapter<String> outgoingProtoArray = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new String[] {"smtp", "smtp+tls", "smtp+ssl"});
+		
+		mOutgoingProto = (Spinner) findViewById(R.id.account_outgoing_protocol);
+		mOutgoingProto.setAdapter(outgoingProtoArray);
+	
+		String currentOutgoingProto = manager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_PROTO);
+		
+		for ( int i = 0 ; i < mOutgoingProto.getCount(); i++) {
+			if (mOutgoingProto.getItemAtPosition(i).equals(currentOutgoingProto)) {
+				mOutgoingProto.setSelection(i);
+				break;
+			}
+		}
+	
 	}
 
 	@Override
@@ -99,12 +177,39 @@ public class EditAccountActivity extends Activity {
 					mDisplayNameText.getText().toString(), -1);
 
 			AccountManager manager = AccountManager.get(this);
+
+			manager.setUserData(mAccount, AuthenticatorService.KEY_INBOX_PATH, 
+					mInboxPathText.getText().toString());
 			
-			manager.setUserData(mAccount, AuthenticatorService.KEY_INCOMING_SERVER, 
-									mIncomingServerText.getText().toString());
+			manager.setUserData(mAccount, AuthenticatorService.KEY_INCOMING_PROTO, 
+					mIncomingProto.getSelectedItem().toString());
+
+			manager.setUserData(mAccount, AuthenticatorService.KEY_OUTGOING_PROTO, 
+					mOutgoingProto.getSelectedItem().toString());
+
+			manager.setUserData(mAccount, AuthenticatorService.KEY_INCOMING_AUTH, 
+					mIncomingAuthMethod.getSelectedItem().toString());
+
+			manager.setUserData(mAccount, AuthenticatorService.KEY_OUTGOING_AUTH, 
+					mOutgoingAuthMethod.getSelectedItem().toString());
 			
-			manager.setUserData(mAccount, AuthenticatorService.KEY_OUTGOING_SERVER, 
-									mOutgoingServerText.getText().toString());
+			manager.setUserData(mAccount, AuthenticatorService.KEY_INCOMING_PORT, 
+					mIncomingPortText.getText().toString());
+
+			manager.setUserData(mAccount, AuthenticatorService.KEY_OUTGOING_PORT, 
+					mOutgoingPortText.getText().toString());
+
+			manager.setUserData(mAccount, AuthenticatorService.KEY_INCOMING_USERNAME, 
+					mIncomingUsernameText.getText().toString());
+
+			manager.setUserData(mAccount, AuthenticatorService.KEY_OUTGOING_USERNAME, 
+					mOutgoingUsernameText.getText().toString());
+
+			manager.setUserData(mAccount, AuthenticatorService.KEY_INCOMING_HOST, 
+									mIncomingHostText.getText().toString());
+			
+			manager.setUserData(mAccount, AuthenticatorService.KEY_OUTGOING_HOST, 
+									mOutgoingHostText.getText().toString());
 			
 			manager.setUserData(mAccount, AuthenticatorService.KEY_DISPLAY_NAME, 
 									mDisplayNameText.getText().toString());								

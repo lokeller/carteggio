@@ -49,15 +49,60 @@ public class CarteggioAccountImpl implements CarteggioAccount {
 	}	
 	
 	@Override
-	public String getIncomingServer() {
-		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_SERVER);
+	public String getInboxPath() {
+		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_INBOX_PATH);
 	}
-	
+
 	@Override
-	public String getOutgoingServer() {
-		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_SERVER);
+	public String getIncomingProto() {
+		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_PROTO);
 	}
-		
+
+	@Override
+	public String getOutgoingProto() {
+		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_PROTO);
+	}
+
+	@Override
+	public String getIncomingHost() {
+		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_HOST);
+	}
+
+	@Override
+	public String getOutgoingHost() {
+		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_HOST);
+	}
+
+	@Override
+	public String getIncomingPort() {
+		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_PORT);
+	}
+
+	@Override
+	public String getOutgoingPort() {
+		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_PORT);
+	}
+
+	@Override
+	public String getIncomingAuthenticationMethod() {
+		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_AUTH);
+	}
+
+	@Override
+	public String getOutgoingAuthenticationMethod() {
+		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_AUTH);
+	}
+
+	@Override
+	public String getIncomingUsername() {
+		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_USERNAME);
+	}
+
+	@Override
+	public String getOutgoingUsername() {
+		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_OUTGOING_USERNAME);
+	}
+
 	@Override
 	public String getIncomingPassword() {
 		return mAccountManager.getUserData(mAccount, AuthenticatorService.KEY_INCOMING_PASSWORD);

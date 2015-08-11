@@ -735,9 +735,13 @@ public class ImapSession {
 		if (fp.contains(FetchProfile.Item.ENVELOPE)) {
 			fetchFields.add("INTERNALDATE");
 			fetchFields.add("RFC822.SIZE");
-			fetchFields
-					.add("BODY.PEEK[HEADER.FIELDS (date subject from content-type to cc "
-							+ "reply-to message-id references in-reply-to user-agent )]");
+	//		fetchFields
+	//				.add("BODY.PEEK[HEADER.FIELDS (date subject from content-type to cc "
+	//						+ "reply-to message-id references in-reply-to user-agent )]");
+			
+			fetchFields.add("BODY.PEEK[HEADER]");
+					
+					
 		}
 		if (fp.contains(FetchProfile.Item.STRUCTURE)) {
 			fetchFields.add("BODYSTRUCTURE");

@@ -29,8 +29,12 @@ public class NetworkFactories {
 	
 	private NetworkFactories(Context context) {
 	
-		registerStoreFactory("imap+tls", new ImapMessageStore.Factory(context));		
-		registerTransportFactory("smtp", new SmtpMessageTransport.Factory());		
+		registerStoreFactory("imap", new ImapMessageStore.Factory(context));
+		registerStoreFactory("imap+tls", new ImapMessageStore.Factory(context));
+		registerStoreFactory("imap+ssl", new ImapMessageStore.Factory(context));
+		registerTransportFactory("smtp", new SmtpMessageTransport.Factory());
+		registerTransportFactory("smtp+ssl", new SmtpMessageTransport.Factory());
+		registerTransportFactory("smtp+ssl", new SmtpMessageTransport.Factory());
 		
 	}	
 	
@@ -54,16 +58,10 @@ public class NetworkFactories {
 	
 	public MessageTransport getMessageTransport(CarteggioAccount account) throws MessagingException {
 		
-		Uri uri = Uri.parse(account.getOutgoingServer());
-		
-		if ( uri == null ) {
-			throw new MessagingException("Invalid message transport URI " + account.getOutgoingServer());
-		}
-		
-		MessageTransport.Factory factory = mTransportFactories.get(uri.getScheme());
+		MessageTransport.Factory factory = mTransportFactories.get(account.getOutgoingProto());
 				
 		if ( factory == null ) {
-			throw new MessagingException("No factory for authority " + uri.getScheme());
+			throw new MessagingException("No factory for protocol " + account.getOutgoingProto());
 		}
 				
 		return factory.getMessageTransport(account);
@@ -71,17 +69,11 @@ public class NetworkFactories {
 	}
 	
 	public MessageStore getMessageStore(CarteggioAccount account) throws MessagingException {
-				
-		Uri uri = Uri.parse(account.getIncomingServer());
 		
-		if ( uri == null ) {
-			throw new MessagingException("Invalid message store URI " + account.getIncomingServer());
-		}
-		
-		MessageStore.Factory factory = mStoreFactories.get(uri.getScheme());
+		MessageStore.Factory factory = mStoreFactories.get(account.getIncomingProto());
 				
 		if ( factory == null ) {
-			throw new MessagingException("No factory for authority " + uri.getScheme());
+			throw new MessagingException("No factory for protocol " + account.getIncomingProto());
 		}
 				
 		return factory.getMessageStore(account);

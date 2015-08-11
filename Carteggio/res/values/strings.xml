@@ -46,9 +46,6 @@
     <string name="save">Save</string>
     <string name="title_setup">Setup Carteggio</string>
     <string name="message_autoconfig_failed">Autoconfiguration failed. Please configure manually the mailbox settings.</string>
-    <string name="label_incoming_description">proto is either imap (for standard imap), imap+ssl+ (for imap over ssl) or imap+tls (for imap with STARTTLS).</string>
-    <string name="label_outgoing_description">proto can be either smtp (for plain smtp), smtp+tls+ (for STARTTLS with SMTP) or smtp+ssl+ (for SMTP over TLS)</string>    
-    <string name="hint_password">Password</string>
     <string name="notification_text_new_messages">Unread carteggio messages</string>
     <plurals name="notification_new_incoming_messages">
         <item quantity="one">One unread message</item>
@@ -76,4 +73,14 @@
     <string name="report_problems_to_developers">Report problem to developers</string>
     
     <string name="get_support">Get support</string>
+    
+    <string name="server_protocol">Protocol</string>
+    <string name="server_auth">Authentication method</string>
+    <string name="server_host">Host</string>
+    <string name="server_port">Port</string>
+    <string name="server_username">User Name</string>
+    <string name="server_password">Pasword</string>
+    <string name="inbox_path">Inbox path</string>
+    <string name="default_inbox_path"></string>
+    <string name="gmail_warning">Please make sure you enabled IMAP access on your GMail account settings</string>
 </resources>

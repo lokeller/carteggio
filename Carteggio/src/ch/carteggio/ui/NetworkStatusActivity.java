@@ -103,11 +103,8 @@ public class NetworkStatusActivity extends Activity implements OnClickListener {
 		
 		CarteggioAccount account = helper.getDefaultAccount();
 		
-		Uri outgoingUri = Uri.parse(account.getOutgoingServer());
-		mOutgoingState.setText(outgoingUri.getHost());
-		
-		Uri incomingUri = Uri.parse(account.getIncomingServer());		
-		mIncomingState.setText(incomingUri.getHost());
+		mOutgoingState.setText(account.getOutgoingHost());
+		mIncomingState.setText(account.getIncomingHost());
 		
 		Drawable iconOk = getResources().getDrawable(android.R.drawable.presence_online);
 		Drawable iconNok = getResources().getDrawable(android.R.drawable.presence_busy);

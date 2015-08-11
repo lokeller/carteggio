@@ -57,7 +57,6 @@ import ch.carteggio.net.imap.parsing.IImapResponseCallback;
 import ch.carteggio.net.imap.parsing.ImapList;
 import ch.carteggio.net.imap.parsing.ImapResponse;
 import ch.carteggio.net.imap.parsing.ImapResponseParser;
-import ch.carteggio.net.security.AuthType;
 import ch.carteggio.net.security.Authentication;
 import ch.carteggio.net.security.AuthenticationFailedException;
 import ch.carteggio.net.security.CertificateValidationException;
@@ -723,24 +722,6 @@ class ImapConnection {
 		eolOut.write('\n');
 		eolOut.flush();
 	
-	}
-	
-	static class ImapServerSettings {
-
-	    String mHost;
-	    int mPort;
-	    String mUsername;
-	    String mPassword;
-	    ConnectionSecurity mConnectionSecurity;
-	    AuthType mAuthType;
-	    String mPathPrefix;
-	    String mCombinedPrefix = null;
-	    String mPathDelimeter = null;
-	    
-		public boolean useCompression(int type) {		
-			return false;
-		}		
-	   
 	}
 	
 	interface UntaggedHandler {

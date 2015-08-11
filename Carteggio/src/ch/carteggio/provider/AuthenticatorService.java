@@ -29,9 +29,23 @@ public class AuthenticatorService extends Service {
 
 	public static final String ACCOUNT_TYPE = "ch.carteggio.emailaccount";
 
-	public static final String KEY_INCOMING_SERVER = "ch.carteggio.EmailAuthenticator.KEY_INCOMING_SERVER";
-	public static final String KEY_OUTGOING_SERVER = "ch.carteggio.EmailAuthenticator.KEY_OUTGOING_SERVER";
+	public static final String KEY_INCOMING_PROTO = "ch.carteggio.EmailAuthenticator.KEY_INCOMING_PROTO";
+	public static final String KEY_OUTGOING_PROTO = "ch.carteggio.EmailAuthenticator.KEY_OUTGOING_PROTO";
 	
+	public static final String KEY_INCOMING_AUTH = "ch.carteggio.EmailAuthenticator.KEY_INCOMING_AUTH";
+	public static final String KEY_OUTGOING_AUTH = "ch.carteggio.EmailAuthenticator.KEY_OUTGOING_AUTH";
+	
+	public static final String KEY_INCOMING_HOST = "ch.carteggio.EmailAuthenticator.KEY_INCOMING_HOST";
+	public static final String KEY_OUTGOING_HOST = "ch.carteggio.EmailAuthenticator.KEY_OUTGOING_HOST";
+	
+	public static final String KEY_INBOX_PATH = "ch.carteggio.EmailAuthenticator.KEY_INBOX_PATH";
+	
+	public static final String KEY_INCOMING_USERNAME = "ch.carteggio.EmailAuthenticator.KEY_INCOMING_USERNAME";
+	public static final String KEY_OUTGOING_USERNAME = "ch.carteggio.EmailAuthenticator.KEY_OUTGOING_USERNAME";
+	
+	public static final String KEY_INCOMING_PORT = "ch.carteggio.EmailAuthenticator.KEY_INCOMING_PORT";
+	public static final String KEY_OUTGOING_PORT = "ch.carteggio.EmailAuthenticator.KEY_OUTGOING_PORT";
+
 	public static final String KEY_INCOMING_PASSWORD = "ch.carteggio.EmailAuthenticator.KEY_INCOMING_PASSWORD";
 	public static final String KEY_OUTGOING_PASSWORD = "ch.carteggio.EmailAuthenticator.KEY_OUTGOING_PASSWORD";
 	

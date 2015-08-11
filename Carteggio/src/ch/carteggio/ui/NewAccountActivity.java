@@ -15,6 +15,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 import ch.carteggio.R;
+import ch.carteggio.net.security.AuthType;
 import ch.carteggio.provider.AuthenticatorService;
 import ch.carteggio.provider.CarteggioContract;
 import ch.carteggio.provider.CarteggioProviderHelper;
@@ -93,6 +94,23 @@ public class NewAccountActivity extends Activity implements OnClickListener {
 									mPassword.getText().toString());
 			settings.putString(AuthenticatorService.KEY_INCOMING_PASSWORD, 
 									mPassword.getText().toString());				
+
+			if (!autoconfigured ) {
+			
+				settings.putString(AuthenticatorService.KEY_INCOMING_AUTH, 
+						AuthType.PLAIN.toString());			
+				settings.putString(AuthenticatorService.KEY_INCOMING_PROTO, 
+						"imap+ssl");			
+				settings.putString(AuthenticatorService.KEY_INCOMING_PORT, 
+						"993");
+				
+				settings.putString(AuthenticatorService.KEY_OUTGOING_AUTH, 
+						AuthType.PLAIN.toString());			
+				settings.putString(AuthenticatorService.KEY_OUTGOING_PROTO, 
+						"smtp+ssl");			
+				settings.putString(AuthenticatorService.KEY_OUTGOING_PORT, 
+						"465");
+			}
 			
 			ContentResolver.setIsSyncable(mAccount, CarteggioContract.AUTHORITY, 1);
 			ContentResolver.setSyncAutomatically(mAccount, CarteggioContract.AUTHORITY, true);				
@@ -101,7 +119,7 @@ public class NewAccountActivity extends Activity implements OnClickListener {
 			manager.addAccountExplicitly(mAccount, "", settings);				
 					    
 			
-			if (!autoconfigured ) {
+			if (!autoconfigured ) {	
 				
 				if ( mAutoconfig.isChecked() ) {
 					Toast.makeText(this, R.string.message_autoconfig_failed, Toast.LENGTH_LONG).show();
@@ -155,11 +173,41 @@ public class NewAccountActivity extends Activity implements OnClickListener {
 			
 			String username = email.substring(0, email.indexOf('@'));
 			
-			settings.putString(AuthenticatorService.KEY_INCOMING_SERVER, 
-										"imap+ssl+://" + username + "@imap.gmail.com:993");
-			settings.putString(AuthenticatorService.KEY_OUTGOING_SERVER, 
-										"smtp+ssl+://" + username + "@smtp.gmail.com:465");
-	
+			settings.putString(AuthenticatorService.KEY_INCOMING_AUTH, AuthType.PLAIN.toString());
+			settings.putString(AuthenticatorService.KEY_INCOMING_HOST, "imap.gmail.com");
+			settings.putString(AuthenticatorService.KEY_INCOMING_PORT, "993");
+			settings.putString(AuthenticatorService.KEY_INCOMING_PROTO, "imap+ssl");
+			settings.putString(AuthenticatorService.KEY_INCOMING_USERNAME, username);
+			
+			settings.putString(AuthenticatorService.KEY_OUTGOING_AUTH, AuthType.PLAIN.toString());
+			settings.putString(AuthenticatorService.KEY_OUTGOING_HOST, "smtp.gmail.com");
+			settings.putString(AuthenticatorService.KEY_OUTGOING_PORT, "465");
+			settings.putString(AuthenticatorService.KEY_OUTGOING_PROTO, "smtp+ssl");
+			settings.putString(AuthenticatorService.KEY_OUTGOING_USERNAME, username);
+			
+			settings.putString(AuthenticatorService.KEY_INBOX_PATH, "");
+			
+			Toast.makeText(this, getString(R.string.gmail_warning), Toast.LENGTH_LONG).show();
+			
+			return true;
+			
+
+		} else if (email.endsWith("@fastmail.com")) {
+				
+			settings.putString(AuthenticatorService.KEY_INCOMING_AUTH, AuthType.PLAIN.toString());
+			settings.putString(AuthenticatorService.KEY_INCOMING_HOST, "mail.messagingengine.com");
+			settings.putString(AuthenticatorService.KEY_INCOMING_PORT, "993");
+			settings.putString(AuthenticatorService.KEY_INCOMING_PROTO, "imap+ssl");
+			settings.putString(AuthenticatorService.KEY_INCOMING_USERNAME, email);
+			
+			settings.putString(AuthenticatorService.KEY_OUTGOING_AUTH, AuthType.PLAIN.toString());
+			settings.putString(AuthenticatorService.KEY_OUTGOING_HOST, "mail.messagingengine.com");
+			settings.putString(AuthenticatorService.KEY_OUTGOING_PORT, "465");
+			settings.putString(AuthenticatorService.KEY_OUTGOING_PROTO, "smtp+ssl");
+			settings.putString(AuthenticatorService.KEY_OUTGOING_USERNAME, email);
+			
+			settings.putString(AuthenticatorService.KEY_INBOX_PATH, "");
+			
 			return true;
 			
 		} else {

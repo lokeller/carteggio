@@ -25,8 +25,11 @@ import ch.carteggio.net.imap.FetchProfile;
 import ch.carteggio.net.imap.FetchProfile.Item;
 import ch.carteggio.net.imap.ImapMessage;
 import ch.carteggio.net.imap.ImapPreferences;
+import ch.carteggio.net.imap.ImapServerSettings;
 import ch.carteggio.net.imap.ImapSession;
 import ch.carteggio.net.imap.ImapStore;
+import ch.carteggio.net.security.AuthType;
+import ch.carteggio.net.security.ConnectionSecurity;
 import ch.carteggio.provider.CarteggioAccount;
 
 public class ImapMessageStore implements MessageStore {
@@ -260,9 +263,50 @@ public class ImapMessageStore implements MessageStore {
 		@Override
 		public MessageStore getMessageStore(CarteggioAccount account) {
 			
+			ImapServerSettings settings = new ImapServerSettings();
+				
+	        if (account.getIncomingProto().equals("imap")) {
+	            settings.mConnectionSecurity = ConnectionSecurity.NONE;
+	            settings.mPort = 143;
+	        } else if (account.getIncomingProto().startsWith("imap+tls")) {
+	        	settings.mConnectionSecurity = ConnectionSecurity.STARTTLS_REQUIRED;
+	        	settings.mPort = 143;
+	        } else if (account.getIncomingProto().startsWith("imap+ssl")) {
+	        	settings.mConnectionSecurity = ConnectionSecurity.SSL_TLS_REQUIRED;
+	        	settings.mPort = 993;
+	        } else {
+	            throw new IllegalArgumentException("Unsupported protocol (" + account.getIncomingProto() + ")");
+	        }
+
+	        settings.mHost = account.getIncomingHost();
+	    	settings.mPort = Integer.parseInt(account.getIncomingPort());
+	    	settings.mUsername = account.getIncomingUsername();
+	        settings.mPassword = account.getIncomingPassword();
+	        
+	        settings.mAuthType = AuthType.valueOf(account.getIncomingAuthenticationMethod());
+		        
+	        boolean autoDetectNamespace = true;
+	        
+	        String inbox = account.getInboxPath();
+	        
+	        if (inbox != null && inbox.length() > 0) {
+	      
+	            if (inbox.length() >= 2 && inbox.charAt(1) == '|') {
+	                autoDetectNamespace = inbox.charAt(0) == '1';
+	                if (!autoDetectNamespace) {
+	                	settings.mPathPrefix = inbox.substring(2);
+	                }
+	            } else {
+	            	settings.mPathPrefix = inbox;
+	                autoDetectNamespace = false;
+	            }
+	        }
+	        // Make extra sure mPathPrefix is null if "auto-detect namespace" is configured
+	        settings.mPathPrefix = autoDetectNamespace ? null : settings.mPathPrefix;
+			
 			try {
 			
-				ImapStore store = new ImapStore(mContext, account.getIncomingServer(), new ImapPreferences(), account.getIncomingPassword());
+				ImapStore store = new ImapStore(mContext, settings, new ImapPreferences());
 	
 				return new ImapMessageStore(mContext, store);
 				

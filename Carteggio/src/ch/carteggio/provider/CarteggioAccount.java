@@ -18,10 +18,28 @@ public interface CarteggioAccount {
 
 	public String getEmail();
 
-	public String getIncomingServer();
+	public String getInboxPath();
+	
+	public String getIncomingProto();
 
-	public String getOutgoingServer();
+	public String getOutgoingProto();
+	
+	public String getIncomingHost();
 
+	public String getOutgoingHost();
+
+	public String getIncomingPort();
+
+	public String getOutgoingPort();
+
+	public String getIncomingAuthenticationMethod();
+
+	public String getOutgoingAuthenticationMethod();
+	
+	public String getIncomingUsername();
+
+	public String getOutgoingUsername();
+	
 	public String getIncomingPassword();
 
 	public String getOutgoingPassword();
