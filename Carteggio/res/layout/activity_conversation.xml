@@ -29,7 +29,7 @@
 
         <EditText
             android:id="@+id/outgoingMessage"
-            android:layout_width="wrap_content"
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_margin="8dip"
             android:layout_weight="1"
@@ -39,7 +39,7 @@
 
         <ImageView
             android:id="@+id/send"
-            android:layout_width="8dp"
+            android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_weight="1"
             android:src="@drawable/ic_action_send" />
